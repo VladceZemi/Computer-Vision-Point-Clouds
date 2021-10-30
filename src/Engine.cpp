@@ -1,58 +1,46 @@
 #include "Engine.hpp"
 
-
 Engine::Engine(){
-    videoCapture.open(0);
-    windowSize = cv::Size(640,480);
+//    videos.push_back("videos/leva_nahoru.mp4");
+    videos.push_back("videos/doleva.mp4");
+//    videos.push_back("videos/leva_dolu.mp4");
+
+    
+    windowSize = cv::Size(640, 480);
+    isRunning = true;
 }
 
 void Engine::run(){
-    FaceDetector faceDetector = FaceDetector();
-    ColorTracker colorTracker = ColorTracker();
-    ObjectTracker objectTracker = ObjectTracker();
-
-    for(;;) {
-        captureCameraFrame();
-    //    std::vector<cv::Rect> faces = faceDetector.getFaces(cameraFrame);
-    //    std::cout<< faces.size()<< std::endl;
-
-    //    drawFaces(faces);
-        
-    //    cv::Point colorPosition = colorTracker.getColorPosition(cameraFrame);
-    //    cv::circle(cameraFrame, colorPosition, 20, cv::Scalar(0, 0, 255));
-
-        
-        if (pointsToTrack.size() == 0) {
-            pointsToTrack = objectTracker.getFeatures(currentFrame);
-        }
-        else {
-            pointsToTrack = objectTracker.trackObject(previousFrame, currentFrame, pointsToTrack);
-            objectTracker.drawPoints(cameraFrame, pointsToTrack, cv::Scalar(0, 255, 0));
-        }
-        
-        cv::imshow("Camera Frame", cameraFrame);
-
-        char c = cv::waitKey(1);
-        if (c == 27){
+    for (int i = 0; i < videos.size(); i++) {
+        gestureRecognizer = GestureRecognizer();
+        processVideo(videos.at(i));
+        if (!isRunning) {
             break;
         }
     }
 }
 
-
-void Engine::drawFaces(std::vector<cv::Rect> faceRectangles){
-    for (int i = 0; i < faceRectangles.size(); i++){
-        cv::rectangle(cameraFrame, faceRectangles.at(i).tl(), faceRectangles.at(i).br(), cv::Scalar(255, 0, 0),5);
+void Engine::processVideo(std::string videoName) {
+    videoCapture.open(videoName);
+    videoCapture >> frame;
+    
+    while (!frame.empty() && isRunning) {
+        processCameraFrame(frame);
+        
+        int delay = 1;
+        char c = cv::waitKey(delay);
+        if (c == 27) {
+            isRunning = false;
+            break;
+        }
+        
+        videoCapture >> frame;
     }
+    gestureRecognizer.recognize();
 }
 
-void Engine::captureCameraFrame(){
-    videoCapture >> cameraFrame;
-    cv::flip(cameraFrame, cameraFrame, 1);
-    cv::resize(cameraFrame, cameraFrame, windowSize);
-
-    currentFrame.copyTo(previousFrame);
-    cameraFrame.copyTo(currentFrame);
+void Engine::processCameraFrame(cv::Mat frame){
+    cv::resize(frame, frame, windowSize);
+    gestureRecognizer.process(frame);
+    cv::imshow("Gesture recognizer", frame);
 }
-
-

@@ -2,32 +2,27 @@
 #define Engine_hpp
 
 #include <stdio.h>
-#include "opencv2/videoio.hpp"
+#include <opencv2/videoio.hpp>
+#include <opencv2/imgproc.hpp>
 #include "opencv2/highgui.hpp"
-#include "opencv2/imgproc.hpp"
-#include "ColorTracker.hpp"
-#include "ObjectTracker.hpp"
-#include "FaceDetector.hpp"
-
+#include "GestureRecognizer.hpp"
 
 class Engine {
 public:
     Engine();
     void run();
+    
 private:
+    bool isRunning;
+    std::vector<std::string> videos;
     cv::VideoCapture videoCapture;
-    cv::Mat cameraFrame;
+    cv::Mat frame;
     cv::Size windowSize;
+    GestureRecognizer gestureRecognizer;
+
     
-    cv::Mat previousFrame;
-    cv::Mat currentFrame;
-    std::vector<cv::Point2f> pointsToTrack;
-    
-    void captureCameraFrame();
-    void drawFaces(std::vector<cv::Rect>);
-    
-    
-    
+    void processCameraFrame(cv::Mat frame);
+    void processVideo(std::string videoName);
 };
 
 #endif /* Engine_hpp */

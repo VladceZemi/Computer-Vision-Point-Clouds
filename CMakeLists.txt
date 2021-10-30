@@ -17,9 +17,10 @@ include_directories( include )
 
 add_executable( 
     ${LVR_PROJECT_NAME}
-    src/main.cpp src/Engine.cpp 
-    src/ColorTracker.cpp 
-    src/FaceDetector.cpp 
-    src/ObjectTracker.cpp 
+    src/main.cpp 
+    src/Engine.cpp 
+    src/GestureClassifier.cpp
+    src/GestureRecognizer.cpp
+    src/Gesture
 )
 target_link_libraries( ${LVR_PROJECT_NAME} ${OpenCV_LIBS} )
