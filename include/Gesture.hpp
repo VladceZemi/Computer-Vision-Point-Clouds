@@ -6,11 +6,12 @@
 
 class Gesture {
 private:
-    std::vector<cv::Point> gesturePoints;
     std::string name;
 public:
     Gesture(std::string name);
     void addPoint(cv::Point point);
+    std::string getName();
+    std::vector<cv::Point> gesturePoints;
 };
 
 #endif /* Gesture_hpp */

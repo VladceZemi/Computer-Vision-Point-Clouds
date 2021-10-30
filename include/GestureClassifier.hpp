@@ -8,7 +8,9 @@
 class GestureClassifier {
 private:
     std::vector<Gesture> gestures;
-    int toleration = 20;
+    int toleration = 5;
+
+    bool findGestureInPath(Gesture gesture, std::vector<cv::Point> gesturePath);
 public:
     GestureClassifier();
     std::string classify(std::vector<cv::Point> gesturePath);
