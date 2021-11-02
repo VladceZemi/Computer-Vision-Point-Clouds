@@ -8,10 +8,14 @@ class Gesture {
 private:
     std::string name;
 public:
+    std::vector<cv::Point> gesturePoints;
+    std::vector<cv::Point> gesturePointsSec;
+
     Gesture(std::string name);
     void addPoint(cv::Point point);
+    void addPointSec(cv::Point point);
     std::string getName();
-    std::vector<cv::Point> gesturePoints;
+    bool isTwoHanded();
 };
 
 #endif /* Gesture_hpp */
