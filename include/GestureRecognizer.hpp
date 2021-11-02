@@ -12,8 +12,8 @@ private:
     cv::Mat preprocessedImage;
     std::vector<std::vector<cv::Point>> contours;
     std::vector<cv::Vec4i> hiearchy;
-    std::vector<cv::Point> gesturePath;
-    std::vector<cv::Point> normalizedGesturePath;
+    std::vector<std::vector<cv::Point>> gesturePath;
+    std::vector<std::vector<cv::Point>> normalizedGesturePath;
     
     void preprocessImage();
     void morphologyOperations();
