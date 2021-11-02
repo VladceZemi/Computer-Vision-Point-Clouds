@@ -39,7 +39,7 @@ void GestureRecognizer::findAndFilterContours() {
         
         double area = cv::contourArea(polygon);
         
-        if (area > 2800 && area < 8000){
+        if (area > 3500 && area < 9000){
             cv::Rect rect = cv::boundingRect(polygon);
             float x = rect.tl().x + rect.width/2;
             float y = rect.tl().y + rect.height/2;
@@ -74,13 +74,33 @@ void GestureRecognizer::normalizeMovementPath() {
         // x faktor je ziskany koeficient ktery se ziska ze vztahu aktualniho max a min x a zvolene velikosti (100)
         p.x = (p.x - x_min) * x_factor;
         p.y = (p.y - y_min) * x_factor;
-        std::cout << p.x << ", " << p.y << std::endl;
+        normalizedGesturePath.push_back(p);
+        //std::cout << p.x << ", " << p.y << std::endl;
     }
 }
 
+void GestureRecognizer::filterMotionLessObjects(){
+    int x_max = 0, x_min = 640, y_max = 0, y_min = 480;
+    for(i = 0; normalizeMovementPath.size(); i++){
+        cv::Point p = gesturePath.at(i);
+        if (p.x > x_max)
+            x_max = p.x;
+        if (p.x < x_min)
+            x_min = p.x;
+        if (p.y > y_max)
+            y_max = p.y;
+        if (p.y < y_min)
+            y_min = p.y;
+    }
+    int distance = x_max - x_min + y_max - y_min; 
+}
+
+
 void GestureRecognizer::recognize() {
     GestureClassifier classifier = GestureClassifier();
+    
 
     normalizeMovementPath();
-    std::string gestureName = classifier.classify(gesturePath);
+    std::string gestureName = classifier.classify(normalizedGesturePath);
+    std::cout << "Jmeno gesta: " << gestureName << "\n";
 }
