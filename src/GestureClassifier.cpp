@@ -35,8 +35,57 @@ GestureClassifier::GestureClassifier() {
     gesture2.addPoint(cv::Point(18,  0));
     gesture2.addPoint(cv::Point(20,  0));
 
+    Gesture gesture3 = Gesture("next");
+    gesture3.addPoint(cv::Point( 9,  6));
+    gesture3.addPoint(cv::Point(10,  4));
+    gesture3.addPoint(cv::Point(11,  2));
+    gesture3.addPoint(cv::Point(12,  1));
+    gesture3.addPoint(cv::Point(15,  0));
+    gesture3.addPoint(cv::Point(17,  0));
+    gesture3.addPoint(cv::Point(19,  1));
+    gesture3.addPoint(cv::Point(19,  4));
+    gesture3.addPoint(cv::Point(19,  8));
+    gesture3.addPoint(cv::Point(18,  9));
+    
+    gesture3.addPointSec(cv::Point(0, 7));
+    gesture3.addPointSec(cv::Point(0, 4));
+    gesture3.addPointSec(cv::Point(1, 2));
+    gesture3.addPointSec(cv::Point(4, 2));
+    gesture3.addPointSec(cv::Point(7, 2));
+    gesture3.addPointSec(cv::Point(9, 1));
+    gesture3.addPointSec(cv::Point(8, 3));
+    gesture3.addPointSec(cv::Point(7, 5));
+    gesture3.addPointSec(cv::Point(7, 8));
+    gesture3.addPointSec(cv::Point(5, 9));
+
+    Gesture gesture4 = Gesture("zoom");
+    gesture4.addPoint(cv::Point(11, 80));
+    gesture4.addPoint(cv::Point(7, 88));
+    gesture4.addPoint(cv::Point(5, 95));
+    gesture4.addPoint(cv::Point(6, 103));
+    gesture4.addPoint(cv::Point(1, 118));
+    gesture4.addPoint(cv::Point(1, 121));
+    gesture4.addPoint(cv::Point(1, 127));
+    gesture4.addPoint(cv::Point(2, 135));
+    gesture4.addPoint(cv::Point(1, 144));
+    gesture4.addPoint(cv::Point(2, 142));
+
+    gesture4.addPointSec(cv::Point(11, 43));
+    gesture4.addPointSec(cv::Point(13, 36));
+    gesture4.addPointSec(cv::Point(14, 30));
+    gesture4.addPointSec(cv::Point(15, 25));
+    gesture4.addPointSec(cv::Point(15, 21));
+    gesture4.addPointSec(cv::Point(15, 16));
+    gesture4.addPointSec(cv::Point(15, 12));
+    gesture4.addPointSec(cv::Point(17, 7));
+    gesture4.addPointSec(cv::Point(17, 2));
+    gesture4.addPointSec(cv::Point(20, 0));
+
+
     allGestures.push_back(gesture1);
     allGestures.push_back(gesture2);
+    allGestures.push_back(gesture3);
+    allGestures.push_back(gesture4);
 }
 
 std::string GestureClassifier::classify(std::vector<cv::Point> gesturePath, std::vector<cv::Point> gesturePathSec) {   
@@ -71,6 +120,12 @@ std::string GestureClassifier::classifyTwoHanded(std::vector<cv::Point> gestureP
         if (
             findGestureInPath(gestures.at(i).gesturePoints, gesturePath) &&
             findGestureInPath(gestures.at(i).gesturePointsSec, gesturePathSec)
+        ) {
+            return gestures.at(i).getName();
+        }
+        else if (
+            findGestureInPath(gestures.at(i).gesturePoints, gesturePathSec) &&
+            findGestureInPath(gestures.at(i).gesturePointsSec, gesturePath)
         ) {
             return gestures.at(i).getName();
         }
@@ -111,8 +166,6 @@ bool GestureClassifier::findGestureInPath(std::vector<cv::Point> gesturePoints, 
             if (distance <= toleration) {
                 pointFound = true;
                 eraseTo = i + 1;
-                //std::cout << gesturePath.at(i) << "=?" << gesturePoint << "\n";
-                //std::cout << "Match v cyklu: "  << i << ", pocet vymazanych pointu: " << eraseTo << "\n";
                 break;
             }
         }

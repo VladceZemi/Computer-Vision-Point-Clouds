@@ -17,5 +17,5 @@ void Gesture::addPointSec(cv::Point point) {
 }
 
 bool Gesture::isTwoHanded() {
-    return gesturePointsSec.empty();
+    return !gesturePointsSec.empty();
 }

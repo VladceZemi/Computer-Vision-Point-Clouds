@@ -34,7 +34,7 @@ void GestureRecognizer::findAndFilterContours() {
         
         double area = cv::contourArea(polygon);
         
-        if (area > 2500 && area < 8000){
+        if (area > 2500 && area < 9500){
             cv::Point handPoint = createHandPoint(polygon);
             groupPoints(handPoint);
         }
@@ -59,7 +59,7 @@ void GestureRecognizer::drawGroups() {
         }
     }
 
-    cv::imshow("groupsImage", groupsImage);
+    cv::imshow("image", groupsImage);
 }
 
 void GestureRecognizer::groupPoints(cv::Point handPoint) {
@@ -84,17 +84,9 @@ void GestureRecognizer::groupPoints(cv::Point handPoint) {
     }
 
     if (!grouped) {
-        auto lastPoints = getLastPointsFromHandsPath();
-
-        for (auto lastPoint : lastPoints) {
-            int distance = abs(handPoint.x - lastPoint.x) + abs(handPoint.y - lastPoint.y);
-            
-            if (distance <= ungroupPointTreshold) {
-                std::vector<cv::Point> newGroup;
-                newGroup.push_back(handPoint);
-                handsPath.push_back(newGroup);
-            }
-        }
+        std::vector<cv::Point> newGroup;
+        newGroup.push_back(handPoint);
+        handsPath.push_back(newGroup);
     }
 
     drawGroups();
@@ -147,7 +139,7 @@ void GestureRecognizer::normalizeMovementPath() {
 }
 
 bool isMotionless(std::vector<cv::Point> gesture) {
-    int minMotionDistance = 30;
+    int minMotionDistance = 50;
     int x_max = 0, x_min = 640, y_max = 0, y_min = 480;
 
     for(int i = 0; i < gesture.size(); i++) {
@@ -169,28 +161,43 @@ bool isMotionless(std::vector<cv::Point> gesture) {
 }
 
 void GestureRecognizer::filterMotionlessObjects() {
-    remove_if(handsPath.begin(), handsPath.end(), isMotionless);
+    // remove_if(handsPath.begin(), handsPath.end(), isMotionless);
 
-    for(int i = 0; i < handsPath.size(); i++){
-        std::cout << handsPath[i] << std::endl;
+    std::vector<std::vector<cv::Point>> newHandsPath;
+
+    for (int i = 0; i < handsPath.size(); i++) {
+        auto hp = handsPath.at(i);
+        if (!isMotionless(hp)) {
+            newHandsPath.push_back(hp);
+        }
     }
+
+    handsPath = newHandsPath;
 }
 
 std::string GestureRecognizer::recognize() {
     GestureClassifier classifier = GestureClassifier();
-    
+    std::string gestureName;
     filterMotionlessObjects();
 
     image.copyTo(groupsImage);
     drawGroups();
-    
+
     normalizeMovementPath();
 
+
     if(normalizedHandsPath.size() > 1) { 
-        return classifier.classify(normalizedHandsPath.at(0), normalizedHandsPath.at(1));
+        gestureName = classifier.classify(normalizedHandsPath.at(0), normalizedHandsPath.at(1));
     }
     else {
         std::vector<cv::Point> emptyVector;
-       return classifier.classify(normalizedHandsPath.at(0), emptyVector);
-    };
+       gestureName = classifier.classify(normalizedHandsPath.at(0), emptyVector);
+    }
+
+    cv::putText(
+        groupsImage, gestureName, cv::Point(200, 50), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 0)
+    );
+    cv::imshow("image", groupsImage);
+    cv::waitKey(2500);
+    return "";
 }
