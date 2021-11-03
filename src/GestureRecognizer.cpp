@@ -1,29 +1,18 @@
 #include "GestureRecognizer.hpp"
 
 GestureRecognizer::GestureRecognizer() {
-//    Gesture openGesture = Gesture("open");
-//    openGesture.addPoint(cv::Point(0, 0));
-//    openGesture.addPoint(cv::Point(10, 10));
-//    openGesture.addPoint(cv::Point(20, 20));
-//    openGesture.addPoint(cv::Point(30, 35));
-//    openGesture.addPoint(cv::Point(35, 45));
-        std::vector<cv::Point> a1;
-        std::vector<cv::Point> a2;
-        std::vector<cv::Point> a3;
-        gesturePath.push_back(a1);
-        gesturePath.push_back(a2);
-        gesturePath.push_back(a3);
+
 }
 
 void GestureRecognizer::process(cv::Mat image) {
     this->image = image;
+    image.copyTo(groupsImage);
 
     preprocessImage();
     morphologyOperations();
     findAndFilterContours();
     
-    
-    cv::imshow("Preprocessed Image", preprocessedImage);
+    cv::imshow("preprocess", preprocessedImage);
 }
 
 void GestureRecognizer::preprocessImage() {
@@ -38,31 +27,94 @@ void GestureRecognizer::morphologyOperations() {
 
 void GestureRecognizer::findAndFilterContours() {
     cv::findContours(preprocessedImage, contours, hiearchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
-    std::vector<cv::Point> vectorOfContours;
+
     for(int i = 0; i < contours.size(); i++) {
         std::vector<cv::Point> polygon;
         cv:approxPolyDP(contours.at(i), polygon, 5, true);
         
         double area = cv::contourArea(polygon);
         
-        if (area > 3500 && area < 9000){
-            cv::Rect rect = cv::boundingRect(polygon);
-            float x = rect.tl().x + rect.width/2;
-            float y = rect.tl().y + rect.height/2;
-            cv::Point point = cv::Point(x,y);
-            cv::circle(image, point, 20, cv::Scalar(0,255,0));
-            gesturePath.at(i).push_back(point);
-            std::cout << gesturePath.at(i) << std::endl;
+        if (area > 2500 && area < 8000){
+            cv::Point handPoint = createHandPoint(polygon);
+            groupPoints(handPoint);
         }
     }
-    gesturePath.push_back(vectorOfContours);
+
+}
+
+cv::Point GestureRecognizer::createHandPoint(std::vector<cv::Point> polygon) {
+    cv::Rect rect = cv::boundingRect(polygon);
+    float x = rect.tl().x + rect.width / 2;
+    float y = rect.tl().y + rect.height / 2;
+    return cv::Point(x, y);
+}
+
+void GestureRecognizer::drawGroups() {
+    cv::Scalar groupColor[4] = {cv::Scalar(255, 0, 0), cv::Scalar(0, 255, 0), cv::Scalar(0, 0, 255), cv::Scalar(0, 0, 0)};
+
+    for (int i = 0; i < handsPath.size(); i++) {
+        auto group = handsPath.at(i);
+        for (cv::Point point : group) {
+            cv::circle(groupsImage, point, 5, groupColor[i]);
+        }
+    }
+
+    cv::imshow("groupsImage", groupsImage);
+}
+
+void GestureRecognizer::groupPoints(cv::Point handPoint) {
+    if (handsPath.empty()) {
+        std::vector<cv::Point> firstVector;
+        firstVector.push_back(handPoint);
+        handsPath.push_back(firstVector);
+        return;
+    }
+
+    bool grouped = false;
+    for (int i = 0; i < handsPath.size(); i++) {
+        cv::Point lastPoint = handsPath.at(i).back();
+        int distance = abs(handPoint.x - lastPoint.x) + abs(handPoint.y - lastPoint.y);
+
+        if (distance <= groupPointTreshold) {
+            handsPath.at(i).push_back(handPoint);
+            grouped = true;
+            break;
+        }
+
+    }
+
+    if (!grouped) {
+        auto lastPoints = getLastPointsFromHandsPath();
+
+        for (auto lastPoint : lastPoints) {
+            int distance = abs(handPoint.x - lastPoint.x) + abs(handPoint.y - lastPoint.y);
+            
+            if (distance <= ungroupPointTreshold) {
+                std::vector<cv::Point> newGroup;
+                newGroup.push_back(handPoint);
+                handsPath.push_back(newGroup);
+            }
+        }
+    }
+
+    drawGroups();
+}
+
+std::vector<cv::Point> GestureRecognizer::getLastPointsFromHandsPath() {
+    std::vector<cv::Point> lastPoints;
+
+    for (std::vector<cv::Point> handPath : handsPath) {
+        lastPoints.push_back(handPath.back());
+    }
+
+    return lastPoints;
 }
 
 void GestureRecognizer::normalizeMovementPath() {
     int x_max = 0, x_min = 640, y_max = 0, y_min = 480;
-    for (int j = 0; j < gesturePath.size(); j++){
-        for (int i = 0; i < gesturePath.at(j).size(); i++) {
-            cv::Point p = gesturePath.at(j).at(i);
+    for (int j = 0; j < handsPath.size(); j++){
+        for (int i = 0; i < handsPath.at(j).size(); i++) {
+            cv::Point p = handsPath.at(j).at(i);
             if (p.x > x_max)
                 x_max = p.x;
             if (p.x < x_min)
@@ -75,65 +127,70 @@ void GestureRecognizer::normalizeMovementPath() {
         }
     }
 
-
-
     int x_size = abs(x_max - x_min);
     float x_factor = 20.0 / x_size;
     
     std::cout << "Faktor: " << x_factor << " x_size: " << x_size << std::endl;
 
-    for (int j = 0; j < gesturePath.size(); j++){
-        std::cout << "okokok" << std::endl;
-        for (int i = 0; i < gesturePath.at(j).size(); i++) {
-            cv::Point p = gesturePath.at(j).at(i);
-            // x faktor je ziskany koeficient ktery se ziska ze vztahu aktualniho max a min x a zvolene velikosti (100)
+    for (int j = 0; j < handsPath.size(); j++){
+        std::vector<cv::Point> normalizedPath;
+
+        for (int i = 0; i < handsPath.at(j).size(); i++) {
+            cv::Point p = handsPath.at(j).at(i);
             p.x = (p.x - x_min) * x_factor;
             p.y = (p.y - y_min) * x_factor;
-            normalizedGesturePath.at(j).push_back(p);
-        //  std::cout << p.x << ", " << p.y << std::endl;
+            normalizedPath.push_back(p);
         }
+
+        normalizedHandsPath.push_back(normalizedPath);
     }
 }
 
-void GestureRecognizer::filterMotionLessObjects(){
-    // int x_max = 0, x_min = 640, y_max = 0, y_min = 480;
-    // for(int i = 0; normalizedGesturePath.size(); i++){
-    //     for(int j = 0; normalizedGesturePath.at(i).size()){
-    //     cv::Point p = gesturePath.at(j);
-    //     if (p.x > x_max)
-    //         x_max = p.x;
-    //     if (p.x < x_min)
-    //         x_min = p.x;
-    //     if (p.y > y_max)
-    //         y_max = p.y;
-    //     if (p.y < y_min)
-    //         y_min = p.y;
-    //     }
-    //     int distance = x_max - x_min + y_max - y_min;
-    //     if distance <= minMotionDistance{
+bool isMotionless(std::vector<cv::Point> gesture) {
+    int minMotionDistance = 30;
+    int x_max = 0, x_min = 640, y_max = 0, y_min = 480;
 
-
-    //         }
-    // }
+    for(int i = 0; i < gesture.size(); i++) {
+        cv::Point p = gesture.at(i);
+        if (p.x > x_max)
+            x_max = p.x;
+        if (p.x < x_min)
+            x_min = p.x;
+        if (p.y > y_max)
+            y_max = p.y;
+        if (p.y < y_min)
+            y_min = p.y;
+        }
+    
+    int distance = x_max - x_min + y_max - y_min;
+    
+    bool rvalue = (distance <= minMotionDistance);
+    return rvalue;
 }
 
+void GestureRecognizer::filterMotionlessObjects() {
+    remove_if(handsPath.begin(), handsPath.end(), isMotionless);
 
-void GestureRecognizer::recognize() {
+    for(int i = 0; i < handsPath.size(); i++){
+        std::cout << handsPath[i] << std::endl;
+    }
+}
+
+std::string GestureRecognizer::recognize() {
     GestureClassifier classifier = GestureClassifier();
     
+    filterMotionlessObjects();
 
-    // normalizeMovementPath();
-    // std::string gestureName = classifier.classify(normalizedGesturePath);
-    // std::cout << "Jmeno gesta: " << gestureName << "\n";
+    image.copyTo(groupsImage);
+    drawGroups();
+    
+    normalizeMovementPath();
 
-    for (cv::Point p : gesturePath.at(0)) {
-        cv::circle(image, p, 5, cv::Scalar(255, 0, 0));
-    }  
-    for (cv::Point p : gesturePath.at(1)) {
-        cv::circle(image, p, 5, cv::Scalar(0, 255, 0));
-    }  
-    for (cv::Point p : gesturePath.at(2)) {
-        cv::circle(image, p, 5, cv::Scalar(0, 0, 255));
+    if(normalizedHandsPath.size() > 1) { 
+        return classifier.classify(normalizedHandsPath.at(0), normalizedHandsPath.at(1));
     }
-    cv::imshow("hue", image);
+    else {
+        std::vector<cv::Point> emptyVector;
+       return classifier.classify(normalizedHandsPath.at(0), emptyVector);
+    };
 }

@@ -1,10 +1,10 @@
 #include "Engine.hpp"
 
 Engine::Engine(){
-    videos.push_back("videos/leva_nahoru.mp4");
-    videos.push_back("videos/prava_nahoru.mp4");
+    // videos.push_back("videos/leva_nahoru.mp4");
+    // videos.push_back("videos/prava_nahoru.mp4");
     videos.push_back("videos/doleva.mp4");
-    videos.push_back("videos/roztazeni_orez.mp4");
+    // videos.push_back("videos/roztazeni_orez.mp4");
     //videos.push_back("videos/leva_dolu.mp4");
     
     windowSize = cv::Size(640, 480);
@@ -37,11 +37,10 @@ void Engine::processVideo(std::string videoName) {
         
         videoCapture >> frame;
     }
-    gestureRecognizer.recognize();
+    std::string gestureName = gestureRecognizer.recognize();
 }
 
 void Engine::processCameraFrame(cv::Mat frame){
     cv::resize(frame, frame, windowSize);
     gestureRecognizer.process(frame);
-    cv::imshow("Gesture recognizer", frame);
 }
