@@ -11,7 +11,7 @@ Engine::Engine(){
     isRunning = true;
 }
 
-void Engine::run(){
+void Engine::run() {
     for (int i = 0; i < videos.size(); i++) {
         gestureRecognizer = GestureRecognizer();
         processVideo(videos.at(i));
@@ -28,7 +28,7 @@ void Engine::processVideo(std::string videoName) {
     while (!frame.empty() && isRunning) {
         processCameraFrame(frame);
         
-        int delay = 1;
+        int delay = 25;
         char c = cv::waitKey(delay);
         if (c == 27) {
             isRunning = false;
