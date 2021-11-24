@@ -1,18 +1,15 @@
 #include "EuclidianClusterSegmentation.hpp"
 
-EuclidianClusterSegmentation::EuclidianClusterSegmentation(){
-    
-    
-}
+EuclidianClusterSegmentation::EuclidianClusterSegmentation() {}
 
 std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>
-EuclidianClusterSegmentation::segmentCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr inputCloud){
-    
+EuclidianClusterSegmentation::segmentCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr inputCloud) {
+
     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> segmentedClouds;
-    
+
     pcl::search::KdTree<pcl::PointXYZ>::Ptr kdTree (new pcl::search::KdTree<pcl::PointXYZ>);
     kdTree->setInputCloud (inputCloud);
-    
+
     std::vector<pcl::PointIndices> clusterIndices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> extraction;
     extraction.setClusterTolerance (1.2);
@@ -37,5 +34,5 @@ EuclidianClusterSegmentation::segmentCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr i
           segmentedClouds.push_back(cluster);
       }
     return segmentedClouds;
-    
+
 }

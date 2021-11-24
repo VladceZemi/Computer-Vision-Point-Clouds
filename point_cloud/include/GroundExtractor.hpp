@@ -13,13 +13,10 @@ public:
     void extractGround(pcl::PointCloud<pcl::PointXYZ>::Ptr inputCloud);
     pcl::PointCloud<pcl::PointXYZ>::Ptr getGround();
     pcl::PointCloud<pcl::PointXYZ>::Ptr getEverythingElse();
-    
+
 private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr ground;
     pcl::PointCloud<pcl::PointXYZ>::Ptr everyrhingElse;
-    
-    
-    
 };
 
 

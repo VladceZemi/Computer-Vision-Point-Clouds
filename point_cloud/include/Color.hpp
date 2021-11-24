@@ -1,17 +1,9 @@
-//
-//  Color.hpp
-//  PCL
-//
-//  Created by Jaromír Landa on 21/10/2021.
-//
-
 #ifndef Color_hpp
 #define Color_hpp
 
 #include <stdio.h>
 
 struct Color {
-
     int R;
     int G;
     int B;
@@ -23,7 +15,7 @@ struct Color {
         this->B = b;
         this->A = a;
     }
-    
+
     Color(int r, int g, int b){
         this->R = r;
         this->G = g;
