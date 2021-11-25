@@ -25,10 +25,40 @@ int main (int argc, char** argv)
     visualization.initializeVisualization();
 
 
-    for (const auto& cloud : segmentedClouds){
-        visualization.addCloudWithRandomColor(cloud);
+    // for (const auto& cloud : segmentedClouds){
+    //     visualization.addCloudWithRandomColor(cloud);
+    // }
+
+
+
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr c = segmentedClouds.at(13);
+
+    float zMax = 0;
+
+    for (int i = 0; i < c->size(); i++){
+        std::cout << c->at(i).z << std::endl;
+        if (zMax < c->at(i).z){
+            zMax = c->at(i).z;
+        }
+    }
+    std::cout << "Z max: " << zMax << std::endl;
+
+    // filtrace pomoci z
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filteredCbyZ(new pcl::PointCloud<pcl::PointXYZ>());
+
+    float toleration = 1;
+
+    for (int i = 0; i < c->size(); i++){
+        if (zMax-toleration < c->at(i).z){
+            filteredCbyZ->push_back(c->at(i));
+        }
     }
 
+
+
+    visualization.addCloudWithRandomColor(filteredCbyZ);
     visualization.runVisualization();
 
     return 0;

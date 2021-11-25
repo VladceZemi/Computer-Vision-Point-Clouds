@@ -21,9 +21,10 @@
 class PCLVisualization {
 private:
     pcl::PointCloud<pcl::PointXYZI>::Ptr m_cloud;
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> m_viewer;
     int m_numberOfClouds;
 public:
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> m_viewer;
+
     PCLVisualization();
     void runVisualization();
     void addCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Color pointsColor);
