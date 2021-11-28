@@ -2,10 +2,17 @@
 
 GroundExtractor::GroundExtractor() {}
 
+pcl::PointCloud<pcl::PointXYZ>::Ptr GroundExtractor::getGround(){
+    return ground;
+}
+
+pcl::PointCloud<pcl::PointXYZ>::Ptr GroundExtractor::getEverythingElse(){
+    return everyrhingElse;
+}
+
 void GroundExtractor::extractGround(pcl::PointCloud<pcl::PointXYZ>::Ptr inputCloud){
     pcl::PointCloud<pcl::PointXYZ>::Ptr groundPoints (new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr otherPoints (new pcl::PointCloud<pcl::PointXYZ>);
-
 
     pcl::PointIndicesPtr groundIndicies (new pcl::PointIndices);
 
@@ -28,13 +35,8 @@ void GroundExtractor::extractGround(pcl::PointCloud<pcl::PointXYZ>::Ptr inputClo
 
     ground = groundPoints;
     everyrhingElse = otherPoints;
-
 }
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr GroundExtractor::getGround(){
-    return ground;
-}
-
-pcl::PointCloud<pcl::PointXYZ>::Ptr GroundExtractor::getEverythingElse(){
-    return everyrhingElse;
+void GroundExtractor::saveExtractedCloudPLY() {
+    pcl::io::save("segmented.ply", *everyrhingElse);
 }

@@ -21,7 +21,7 @@ link_directories( ${PCL_LIBRARY_DIRS} )
 
 add_definitions( ${PCL_DEFINITIONS} )
 
-add_executable( 
+add_executable(
     ${LVR_PROJECT_NAME}
     src/main.cpp
     src/PLYLoader.cpp
@@ -29,6 +29,7 @@ add_executable(
     src/EuclidianClusterSegmentation.cpp
     src/GroundExtractor.cpp
     src/Color.cpp
+    src/Roofer.cpp
 )
 target_link_libraries( ${LVR_PROJECT_NAME} ${PCL_LIBRARIES} )
 target_link_libraries( ${LVR_PROJECT_NAME} ${Boost_LIBRARIES} )
