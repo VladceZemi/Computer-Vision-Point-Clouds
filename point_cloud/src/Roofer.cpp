@@ -6,6 +6,7 @@ Roofer::Roofer(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 
 void Roofer::roof() {
     auto roofRidge = getRoofRidge(m_cloud);
+    auto bottomOfRoof = getRoofBottom(m_cloud);
 
     auto farthestPoints = getFarthestPoints(roofRidge);
     pcl::PointXYZ ridgePoint1 = getMaxZPointNear(std::get<0>(farthestPoints), 1.5, roofRidge);
@@ -14,7 +15,7 @@ void Roofer::roof() {
     m_roofPoints.push_back(ridgePoint1);
     m_roofPoints.push_back(ridgePoint2);
 
-    getCornerPoints(m_cloud);
+    getCornerPoints(bottomOfRoof);
 }
 
 pcl::PointXYZ Roofer::getMaxZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
@@ -29,6 +30,20 @@ pcl::PointXYZ Roofer::getMaxZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     }
 
     return zMaxPoint;
+}
+
+pcl::PointXYZ Roofer::getMinZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+    pcl::PointXYZ zMinPoint;
+    float zMin = std::numeric_limits<float>::max();
+
+    for (int i = 0; i < cloud->size(); i++) {
+        if (zMin > cloud->at(i).z) {
+            zMin = cloud->at(i).z;
+            zMinPoint = cloud->at(i);
+        }
+    }
+
+    return zMinPoint;
 }
 
 pcl::PointXYZ Roofer::getMaxZPointNear(pcl::PointXYZ point, float radius, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
@@ -56,12 +71,29 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::getRoofRidge(pcl::PointCloud<pcl::Po
     float zMax = getMaxZPoint(m_cloud).z;
 
     for (int i = 0; i < m_cloud->size(); i++) {
-        if (zMax - TOLERATION < m_cloud->at(i).z) {
+        if ((zMax - TOLERATION) < m_cloud->at(i).z) {
             filteredCbyZ->push_back(m_cloud->at(i));
         }
     }
 
     return filteredCbyZ;
+}
+
+
+pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::getRoofBottom(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filteredCbyZ(new pcl::PointCloud<pcl::PointXYZ>());
+    float zMin = getMinZPoint(m_cloud).z;
+
+    for (int i = 0; i < m_cloud->size(); i++) {
+        if ((zMin + TOLERATION) > m_cloud->at(i).z) {
+            std::cout << m_cloud->at(i).z << std::endl;
+            filteredCbyZ->push_back(m_cloud->at(i));
+        }
+    }
+    std::cout << zMin + TOLERATION << std::endl;
+
+    return filteredCbyZ;
+
 }
 
 std::tuple<pcl::PointXYZ, pcl::PointXYZ> Roofer::getFarthestPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
@@ -124,11 +156,11 @@ void Roofer::visualize(const boost::shared_ptr<pcl::visualization::PCLVisualizer
     viewer->addLine(m_roofPoints.at(0), m_roofPoints.at(3), 255, 0, 0, "roofTop3");
 
     viewer->addLine(m_roofPoints.at(1), m_roofPoints.at(4), 255, 0, 0, "roofTop4");
-//    viewer->addLine(m_roofPoints.at(1), m_roofPoints.at(5), 255, 0, 0, "roofTop5");
+    viewer->addLine(m_roofPoints.at(1), m_roofPoints.at(5), 255, 0, 0, "roofTop5");
 
     viewer->addLine(m_roofPoints.at(2), m_roofPoints.at(3), 255, 0, 0, "roof1");
     viewer->addLine(m_roofPoints.at(3), m_roofPoints.at(4), 255, 0, 0, "roof2");
-//    viewer->addLine(m_roofPoints.at(4), m_roofPoints.at(5), 255, 0, 0, "roof3");
+    viewer->addLine(m_roofPoints.at(4), m_roofPoints.at(5), 255, 0, 0, "roof3");
     viewer->addLine(m_roofPoints.at(5), m_roofPoints.at(2), 255, 0, 0, "roof4");
 }
 

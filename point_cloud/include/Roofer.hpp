@@ -13,13 +13,15 @@
 
 class Roofer {
 private:
-    const float TOLERATION = 2.0;
+    const float TOLERATION = 0.5;
     pcl::PointCloud<pcl::PointXYZ>::Ptr m_cloud;
     std::vector<pcl::PointXYZ> m_roofPoints;
 
     pcl::PointXYZ getMaxZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    pcl::PointXYZ getMinZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     pcl::PointXYZ getMaxZPointNear(pcl::PointXYZ point, float radius, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     pcl::PointCloud<pcl::PointXYZ>::Ptr getRoofRidge(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr getRoofBottom(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     std::tuple<pcl::PointXYZ, pcl::PointXYZ> getFarthestPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     void getCornerPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 public:
