@@ -13,6 +13,13 @@
 
 class Roofer {
 private:
+    float minX = std::numeric_limits<float>::max();
+    float minY = std::numeric_limits<float>::max();
+    float minZ = std::numeric_limits<float>::max();
+    float maxX = std::numeric_limits<float>::min();
+    float maxY = std::numeric_limits<float>::min();
+    float maxZ = std::numeric_limits<float>::min();
+
     const float TOLERATION = 0.5;
     pcl::PointCloud<pcl::PointXYZ>::Ptr m_cloud;
     std::vector<pcl::PointXYZ> m_roofPoints;

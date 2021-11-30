@@ -84,16 +84,16 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::getRoofBottom(pcl::PointCloud<pcl::P
     pcl::PointCloud<pcl::PointXYZ>::Ptr filteredCbyZ(new pcl::PointCloud<pcl::PointXYZ>());
     float zMin = getMinZPoint(m_cloud).z;
 
+    std::cout << "Pred filtraci: " << m_cloud->size() << std::endl;
+
     for (int i = 0; i < m_cloud->size(); i++) {
-        if ((zMin + TOLERATION) > m_cloud->at(i).z) {
-            std::cout << m_cloud->at(i).z << std::endl;
+        if ((zMin + 10) > m_cloud->at(i).z) {
             filteredCbyZ->push_back(m_cloud->at(i));
         }
     }
+    std::cout << "Po filtraci: " << filteredCbyZ->size() << std::endl;
     std::cout << zMin + TOLERATION << std::endl;
-
     return filteredCbyZ;
-
 }
 
 std::tuple<pcl::PointXYZ, pcl::PointXYZ> Roofer::getFarthestPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
@@ -116,30 +116,61 @@ std::tuple<pcl::PointXYZ, pcl::PointXYZ> Roofer::getFarthestPoints(pcl::PointClo
 }
 
 void Roofer::getCornerPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
-    pcl::PointXYZ leftTop(std::numeric_limits<float>::max(), std::numeric_limits<float>::min(), 0);
-    pcl::PointXYZ leftDown(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), 0);
-    pcl::PointXYZ rightTop(std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), 0);
-    pcl::PointXYZ rightDown(std::numeric_limits<float>::min(), std::numeric_limits<float>::max(), 0);
+    pcl::PointXYZ firstCorner(std::numeric_limits<float>::max(), std::numeric_limits<float>::min(), 0);
+    pcl::PointXYZ secondCorner(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), 0);
+    pcl::PointXYZ thirdCorner(std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), 0);
+    pcl::PointXYZ fourthCorner(std::numeric_limits<float>::min(), std::numeric_limits<float>::max(), 0);
 
-    for (auto point : *cloud) {
-        if (point.y > leftTop.y && point.x < leftTop.x) {
-            leftTop = point;
+    //std::cout << "Minimalni hodnota na ose X: " << minX << std::endl;
+    //std::cout << "Minimalni hodnota na ose Y: " << minY << std::endl;
+    //std::cout << "Minimalni hodnota na ose Z: " << minZ << std::endl;
+    //std::cout << "Maximalni hodnota na ose X: " << maxX << std::endl;
+    //std::cout << "Maximalni hodnota na ose Y: " << maxY << std::endl;
+    //std::cout << "Maximalni hodnota na ose Z: " << maxZ << std::endl;
+
+	for (auto point : *cloud) {
+        if ((point.y - point.x) > (firstCorner.y - firstCorner.x)) {
+            firstCorner = point;
         }
-        if (point.y < leftDown.y && point.x < leftDown.x) {
-            leftDown = point;
+        if ((point.x + point.y)  < (secondCorner.x + secondCorner.y)) {
+            secondCorner = point;
         }
-        if (point.y > rightTop.y && point.x > rightTop.x) {
-            rightTop = point;
+        if ((point.x + point.y) > (thirdCorner.x + thirdCorner.y)) {
+            thirdCorner = point;
         }
-        if (point.y < rightDown.y && point.x > rightDown.x) {
-            rightDown = point;
+        if ((point.x - point.y) > (fourthCorner.x - fourthCorner.y))  {
+            fourthCorner = point;
         }
+
+        //if (point.x < minX){
+        //    minX = point.x;
+        //}
+        //if (point.y < minY){
+        //    minY = point.y;
+        //}
+        //if (point.z < minZ){
+        //    minZ = point.z;
+        //}
+//
+        //if (point.x > maxX){
+        //    maxX = point.x;
+        //}
+        //if (point.y > maxY){
+        //    maxY = point.y;
+        //}
+        //if (point.z > maxZ){
+        //    maxZ = point.z;
+        //}
     }
+    m_roofPoints.push_back(firstCorner);
+    m_roofPoints.push_back(secondCorner);
+    m_roofPoints.push_back(thirdCorner);
+    m_roofPoints.push_back(fourthCorner);
 
-    m_roofPoints.push_back(leftTop);
-    m_roofPoints.push_back(leftDown);
-    m_roofPoints.push_back(rightTop);
-    m_roofPoints.push_back(rightDown);
+    //std::cout << "Rozsah na ose X: " << maxX - minX << std::endl;
+    //std::cout << "Rozsah na ose Y: " << maxY - minY << std::endl;
+    //std::cout << "Rozsah na ose Z: " << maxZ - minZ << std::endl;
+
 }
 
 void Roofer::visualize(const boost::shared_ptr<pcl::visualization::PCLVisualizer>& viewer) {
@@ -151,17 +182,64 @@ void Roofer::visualize(const boost::shared_ptr<pcl::visualization::PCLVisualizer
 //        viewer->addLine(m_roofPoints.at(i - 1), m_roofPoints.at(i), 255, 0, 0, lineName);
 //    }
 
+    std::cout << "Pocet bodu v mroof: " << m_roofPoints.size() << std::endl;
+
+    std::cout << "firstCorner: osa X: " << m_roofPoints.at(2).x-minX <<  ", osa Y: " << m_roofPoints.at(2).y-minY << std::endl;
+    std::cout << "secondCorner: osa X: " << m_roofPoints.at(3).x-minX <<  ", osa Y: " << m_roofPoints.at(3).y-minY << std::endl;
+    std::cout << "thirdCorner: osa X: " << m_roofPoints.at(4).x-minX <<  ", osa Y: " << m_roofPoints.at(4).y-minY << std::endl;
+    std::cout << "fourthCorner: osa X: " << m_roofPoints.at(5).x-minX <<  ", osa Y: " << m_roofPoints.at(5).y-minY << std::endl;
+
+    float nearest01 = std::numeric_limits<float>::max();
+    pcl::PointXYZ nearest01Point;
+    float nearest02 = std::numeric_limits<float>::max();
+    pcl::PointXYZ nearest02Point;
+    float nearest11 = std::numeric_limits<float>::max();
+    pcl::PointXYZ nearest11Point;
+    float nearest12 = std::numeric_limits<float>::max();
+    pcl::PointXYZ nearest12Point;
+
+
+    for(int i = 2; i < m_roofPoints.size(); i++){
+        float vzd0 = abs(m_roofPoints.at(i).x - m_roofPoints.at(0).x) + abs(m_roofPoints.at(i).y - m_roofPoints.at(0).y) + abs(m_roofPoints.at(i).z - m_roofPoints.at(0).z);
+        float vzd1 = abs(m_roofPoints.at(i).x - m_roofPoints.at(1).x) + abs(m_roofPoints.at(i).y - m_roofPoints.at(1).y) + abs(m_roofPoints.at(i).z - m_roofPoints.at(1).z);
+        if (nearest01 > vzd0){
+            nearest02Point = nearest01Point;
+            nearest02 = nearest01;
+
+            nearest01Point = m_roofPoints.at(i);
+            nearest01 = vzd0;
+        };
+        if (nearest02 > vzd0 && nearest01Point.x != m_roofPoints.at(i).x && nearest01Point.y != m_roofPoints.at(i).y && nearest01Point.z != m_roofPoints.at(i).z){
+            nearest02Point = m_roofPoints.at(i);
+            nearest02 = vzd0;
+        };
+
+        if (nearest11 > vzd1){
+            nearest12Point = nearest11Point;
+            nearest12 = nearest11;
+
+            nearest11Point = m_roofPoints.at(i);
+            nearest11 = vzd1;
+        };
+        if (nearest12 > vzd1 && nearest11Point.x != m_roofPoints.at(i).x && nearest11Point.y != m_roofPoints.at(i).y && nearest11Point.z != m_roofPoints.at(i).z){
+            nearest12Point = m_roofPoints.at(i);
+            nearest12 = vzd1;
+        };
+    }
+
+
     viewer->addLine(m_roofPoints.at(0), m_roofPoints.at(1), 255, 0, 0, "roofTop1");
-    viewer->addLine(m_roofPoints.at(0), m_roofPoints.at(2), 255, 0, 0, "roofTop2");
-    viewer->addLine(m_roofPoints.at(0), m_roofPoints.at(3), 255, 0, 0, "roofTop3");
 
-    viewer->addLine(m_roofPoints.at(1), m_roofPoints.at(4), 255, 0, 0, "roofTop4");
-    viewer->addLine(m_roofPoints.at(1), m_roofPoints.at(5), 255, 0, 0, "roofTop5");
+    viewer->addLine(m_roofPoints.at(0), nearest01Point, 255, 0, 0, "roofTop2");
+    viewer->addLine(m_roofPoints.at(0), nearest02Point, 255, 0, 0, "roofTop3");
 
-    viewer->addLine(m_roofPoints.at(2), m_roofPoints.at(3), 255, 0, 0, "roof1");
-    viewer->addLine(m_roofPoints.at(3), m_roofPoints.at(4), 255, 0, 0, "roof2");
-    viewer->addLine(m_roofPoints.at(4), m_roofPoints.at(5), 255, 0, 0, "roof3");
-    viewer->addLine(m_roofPoints.at(5), m_roofPoints.at(2), 255, 0, 0, "roof4");
+    viewer->addLine(m_roofPoints.at(1), nearest11Point, 255, 0, 0, "roofTop4");
+    viewer->addLine(m_roofPoints.at(1), nearest12Point, 255, 0, 0, "roofTop5");
+
+    viewer->addLine(m_roofPoints.at(5), m_roofPoints.at(3), 255, 0, 0, "statueLine1");
+    viewer->addLine(m_roofPoints.at(5), m_roofPoints.at(4), 255, 0, 0, "statueLine2");
+    viewer->addLine(m_roofPoints.at(4), m_roofPoints.at(2), 255, 0, 0, "statueLine3");
+    viewer->addLine(m_roofPoints.at(2), m_roofPoints.at(3), 255, 0, 0, "statueLine4");
 }
 
 void jirkuvMagic() {
