@@ -4,7 +4,9 @@
 #include <cmath>
 #include <tuple>
 #include <limits>
+#include <map>
 
+#include <pcl/common/centroid.h>
 #include <pcl/common/common_headers.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -22,11 +24,13 @@ private:
 
     const float TOLERATION = 0.5;
     pcl::PointCloud<pcl::PointXYZ>::Ptr m_cloud;
+    pcl::CentroidPoint<pcl::PointXYZ> m_centroid;
     std::vector<pcl::PointXYZ> m_roofPoints;
 
     pcl::PointXYZ getMaxZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     pcl::PointXYZ getMinZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     pcl::PointXYZ getMaxZPointNear(pcl::PointXYZ point, float radius, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filterRoofNoise(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     pcl::PointCloud<pcl::PointXYZ>::Ptr getRoofRidge(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     pcl::PointCloud<pcl::PointXYZ>::Ptr getRoofBottom(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     std::tuple<pcl::PointXYZ, pcl::PointXYZ> getFarthestPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);

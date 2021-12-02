@@ -1,12 +1,28 @@
 #include "Roofer.hpp"
 
+bool pointsEq(pcl::PointXYZ p1, pcl::PointXYZ p2) {
+    return (
+        p1.x == p2.x &&
+        p1.y == p2.y &&
+        p1.z == p2.z
+    );
+}
+
+
 Roofer::Roofer(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+    for(auto point : *cloud) {
+        m_centroid.add(point);
+    }
     m_cloud = cloud;
 }
 
 void Roofer::roof() {
-    auto roofRidge = getRoofRidge(m_cloud);
-    auto bottomOfRoof = getRoofBottom(m_cloud);
+    auto filteredCloud = filterRoofNoise(m_cloud);
+    std::cout << "m_cloud: " << m_cloud->size() << " filteredCloud: " << filteredCloud->size() << std::endl;
+    m_cloud = filteredCloud;
+
+    auto roofRidge = getRoofRidge(filteredCloud);
+    auto bottomOfRoof = getRoofBottom(filteredCloud);
 
     auto farthestPoints = getFarthestPoints(roofRidge);
     pcl::PointXYZ ridgePoint1 = getMaxZPointNear(std::get<0>(farthestPoints), 1.5, roofRidge);
@@ -66,12 +82,38 @@ pcl::PointXYZ Roofer::getMaxZPointNear(pcl::PointXYZ point, float radius, pcl::P
     return maxZPoint;
 }
 
+pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::filterRoofNoise(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filteredCloud(new pcl::PointCloud<pcl::PointXYZ>());
+    std::map<int, int> histogram;
+
+    for (auto point : *cloud) {
+        float h = round(point.z);
+        if (histogram.find(h) == histogram.end()) {
+            histogram[h] = 0;
+        }
+        histogram[h] += 1;
+    }
+
+    for (auto it = histogram.begin(); it != histogram.end(); it ++) {
+        std::cout << it->first << ": " << it->second << std::endl;
+    }
+
+    for (auto point : *cloud) {
+        float h = round(point.z);
+        if (histogram[h] > 10) {
+            filteredCloud->push_back(point);
+        }
+    }
+
+    return filteredCloud;
+}
+
 pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::getRoofRidge(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr filteredCbyZ(new pcl::PointCloud<pcl::PointXYZ>());
     float zMax = getMaxZPoint(m_cloud).z;
 
     for (int i = 0; i < m_cloud->size(); i++) {
-        if ((zMax - TOLERATION) < m_cloud->at(i).z) {
+        if ((zMax - 2) < m_cloud->at(i).z) {
             filteredCbyZ->push_back(m_cloud->at(i));
         }
     }
@@ -174,106 +216,73 @@ void Roofer::getCornerPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 }
 
 void Roofer::visualize(const boost::shared_ptr<pcl::visualization::PCLVisualizer>& viewer) {
-//    for (int i = 1; i < m_roofPoints.size(); i++) {
-//        std::stringstream stream;
-//        stream << "roof" << i - 1 << "-" << i;
-//        std::string lineName = stream.str();
-//
-//        viewer->addLine(m_roofPoints.at(i - 1), m_roofPoints.at(i), 255, 0, 0, lineName);
-//    }
-
-    std::cout << "Pocet bodu v mroof: " << m_roofPoints.size() << std::endl;
-
-    std::cout << "firstCorner: osa X: " << m_roofPoints.at(2).x-minX <<  ", osa Y: " << m_roofPoints.at(2).y-minY << std::endl;
-    std::cout << "secondCorner: osa X: " << m_roofPoints.at(3).x-minX <<  ", osa Y: " << m_roofPoints.at(3).y-minY << std::endl;
-    std::cout << "thirdCorner: osa X: " << m_roofPoints.at(4).x-minX <<  ", osa Y: " << m_roofPoints.at(4).y-minY << std::endl;
-    std::cout << "fourthCorner: osa X: " << m_roofPoints.at(5).x-minX <<  ", osa Y: " << m_roofPoints.at(5).y-minY << std::endl;
-
-    float nearest01 = std::numeric_limits<float>::max();
     pcl::PointXYZ nearest01Point;
-    float nearest02 = std::numeric_limits<float>::max();
     pcl::PointXYZ nearest02Point;
-    float nearest11 = std::numeric_limits<float>::max();
     pcl::PointXYZ nearest11Point;
-    float nearest12 = std::numeric_limits<float>::max();
     pcl::PointXYZ nearest12Point;
 
+    float dist0LT = abs(m_roofPoints.at(2).x - m_roofPoints.at(0).x) + abs(m_roofPoints.at(2).y - m_roofPoints.at(0).y);
+    float dist1LT = abs(m_roofPoints.at(2).x - m_roofPoints.at(1).x) + abs(m_roofPoints.at(2).y - m_roofPoints.at(1).y);
 
-    for(int i = 2; i < m_roofPoints.size(); i++){
-        float vzd0 = abs(m_roofPoints.at(i).x - m_roofPoints.at(0).x) + abs(m_roofPoints.at(i).y - m_roofPoints.at(0).y) + abs(m_roofPoints.at(i).z - m_roofPoints.at(0).z);
-        float vzd1 = abs(m_roofPoints.at(i).x - m_roofPoints.at(1).x) + abs(m_roofPoints.at(i).y - m_roofPoints.at(1).y) + abs(m_roofPoints.at(i).z - m_roofPoints.at(1).z);
-        if (nearest01 > vzd0){
-            nearest02Point = nearest01Point;
-            nearest02 = nearest01;
+    float dist0LD = abs(m_roofPoints.at(3).x - m_roofPoints.at(0).x) + abs(m_roofPoints.at(3).y - m_roofPoints.at(0).y);
+    float dist1LD = abs(m_roofPoints.at(3).x - m_roofPoints.at(1).x) + abs(m_roofPoints.at(3).y - m_roofPoints.at(1).y);
 
-            nearest01Point = m_roofPoints.at(i);
-            nearest01 = vzd0;
-        };
-        if (nearest02 > vzd0 && nearest01Point.x != m_roofPoints.at(i).x && nearest01Point.y != m_roofPoints.at(i).y && nearest01Point.z != m_roofPoints.at(i).z){
-            nearest02Point = m_roofPoints.at(i);
-            nearest02 = vzd0;
-        };
-
-        if (nearest11 > vzd1){
-            nearest12Point = nearest11Point;
-            nearest12 = nearest11;
-
-            nearest11Point = m_roofPoints.at(i);
-            nearest11 = vzd1;
-        };
-        if (nearest12 > vzd1 && nearest11Point.x != m_roofPoints.at(i).x && nearest11Point.y != m_roofPoints.at(i).y && nearest11Point.z != m_roofPoints.at(i).z){
-            nearest12Point = m_roofPoints.at(i);
-            nearest12 = vzd1;
-        };
+    if (dist0LT < dist1LT) {
+        if (dist0LD < dist1LD) {
+            nearest01Point = m_roofPoints.at(2); //
+            nearest02Point = m_roofPoints.at(3); //
+            nearest11Point = m_roofPoints.at(4);
+            nearest12Point = m_roofPoints.at(5);
+        }
+        else {
+            nearest01Point = m_roofPoints.at(2); //
+            nearest02Point = m_roofPoints.at(4);
+            nearest11Point = m_roofPoints.at(3); //
+            nearest12Point = m_roofPoints.at(5);
+        }
+    }
+    else {
+        if (dist0LD < dist1LD) {
+            nearest01Point = m_roofPoints.at(3); //
+            nearest02Point = m_roofPoints.at(4);
+            nearest11Point = m_roofPoints.at(2); //
+            nearest12Point = m_roofPoints.at(5);
+        }
+        else {
+            nearest01Point = m_roofPoints.at(4);
+            nearest02Point = m_roofPoints.at(5);
+            nearest11Point = m_roofPoints.at(2); //
+            nearest12Point = m_roofPoints.at(3); //
+        }
     }
 
+    viewer->addPointCloud(m_cloud, "cloud");
+    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "cloud");
+    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1.0, 1.0, 1.0, "cloud");
 
     viewer->addLine(m_roofPoints.at(0), m_roofPoints.at(1), 255, 0, 0, "roofTop1");
 
-    viewer->addLine(m_roofPoints.at(0), nearest01Point, 255, 0, 0, "roofTop2");
-    viewer->addLine(m_roofPoints.at(0), nearest02Point, 255, 0, 0, "roofTop3");
+    viewer->addLine(m_roofPoints.at(0), nearest01Point, 255, 0, 0, "roofSide2");
+    viewer->addLine(m_roofPoints.at(0), nearest02Point, 255, 0, 0, "roofSide3");
 
-    viewer->addLine(m_roofPoints.at(1), nearest11Point, 255, 0, 0, "roofTop4");
-    viewer->addLine(m_roofPoints.at(1), nearest12Point, 255, 0, 0, "roofTop5");
+    viewer->addLine(m_roofPoints.at(1), nearest11Point, 255, 0, 0, "roofSide4");
+    viewer->addLine(m_roofPoints.at(1), nearest12Point, 255, 0, 0, "roofSide5");
 
     viewer->addLine(m_roofPoints.at(5), m_roofPoints.at(3), 255, 0, 0, "statueLine1");
     viewer->addLine(m_roofPoints.at(5), m_roofPoints.at(4), 255, 0, 0, "statueLine2");
     viewer->addLine(m_roofPoints.at(4), m_roofPoints.at(2), 255, 0, 0, "statueLine3");
     viewer->addLine(m_roofPoints.at(2), m_roofPoints.at(3), 255, 0, 0, "statueLine4");
-}
 
-void jirkuvMagic() {
-//    if(uhelDegress > 90 || uhelDegress > 270){
-//        if (uhelDegress > 270){
-//            uhelDegress -= 270;
-//            uhelDegress = uhelDegress/90;
-//            posunutyBod1.x = bod1.x + 10*uhelDegress;
-//            posunutyBod1.y = bod1.y - 10/uhelDegress;
-//            //  pricitani x odecitani na ose y
-//        }
-//        else{
-//            uhelDegress -= 0;
-//            uhelDegress = uhelDegress/90;
-//            posunutyBod1.x = bod1.x + 10/uhelDegress;
-//            posunutyBod1.y = bod1.y + 10*uhelDegress;
-//            // pricitani x pricitani na ose y
-//        }
-//    }
-//    else{
-//        if (uhelDegress > 180){
-//            uhelDegress -= 180;
-//            uhelDegress = uhelDegress/90;
-//            posunutyBod1.x = bod1.x - 10/uhelDegress;
-//            posunutyBod1.y = bod1.y - 10*uhelDegress;
-//            // odecitani na x odecitani na ose y
-//        }
-//        else
-//        {
-//            uhelDegress -= 90;
-//            uhelDegress = uhelDegress/90;
-//            posunutyBod1.x = bod1.x + 10/uhelDegress;
-//            posunutyBod1.y = bod1.y - 10*uhelDegress;
-//            // pricitani na x odecitani na ose y
-//        }
-//    }
+    viewer->addText3D("0", m_roofPoints.at(0), 1.0, 1.0, 1.0, 1.0, "pt0");
+    viewer->addText3D("1", m_roofPoints.at(1), 1.0, 1.0, 1.0, 1.0, "pt1");
+    viewer->addText3D("leftTop", m_roofPoints.at(2), 1.0, 1.0, 1.0, 1.0, "leftTop");
+    viewer->addText3D("leftDown", m_roofPoints.at(3), 1.0, 1.0, 1.0, 1.0, "leftDown");
+    viewer->addText3D("rightTop", m_roofPoints.at(4), 1.0, 1.0, 1.0, 1.0, "rightTop");
+    viewer->addText3D("rightDown", m_roofPoints.at(5), 1.0, 1.0, 1.0, 1.0, "rightDown");
+
+    pcl::PointXYZ center;
+    m_centroid.get(center);
+    viewer->addLine(center, pcl::PointXYZ(center.x + 10, center.y, center.z), 1.0, 0, 0, "X");
+    viewer->addLine(center, pcl::PointXYZ(center.x, center.y + 10, center.z), 0, 1.0, 0, "Y");
+    viewer->addLine(center, pcl::PointXYZ(center.x, center.y, center.z + 10), 0, 0, 1.0, "Z");
 }

@@ -44,7 +44,7 @@ void roofAndVisualizeSegment() {
     visualization.m_viewer->removeAllPointClouds();
     visualization.m_viewer->removeAllShapes();
 
-    visualization.addCloudWithRandomColor(segment);
+    // visualization.addCloudWithRandomColor(segment);
     roofer.visualize(visualization.m_viewer);
 }
 
