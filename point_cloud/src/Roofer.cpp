@@ -22,7 +22,7 @@ void Roofer::roof() {
     m_cloud = filteredCloud;
 
     auto roofRidge = getRoofRidge(filteredCloud);
-    auto bottomOfRoof = getRoofBottom(filteredCloud);
+    // auto bottomOfRoof = getRoofBottom(filteredCloud);
 
     auto farthestPoints = getFarthestPoints(roofRidge);
     pcl::PointXYZ ridgePoint1 = getMaxZPointNear(std::get<0>(farthestPoints), 1.5, roofRidge);
@@ -120,11 +120,11 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::filterRoofNoise(pcl::PointCloud<pcl:
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::getRoofRidge(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr filteredCbyZ(new pcl::PointCloud<pcl::PointXYZ>());
-    float zMax = getMaxZPoint(m_cloud).z;
+    float zMax = getMaxZPoint(cloud).z;
 
-    for (int i = 0; i < m_cloud->size(); i++) {
-        if (zMax - 5< m_cloud->at(i).z) {
-            filteredCbyZ->push_back(m_cloud->at(i));
+    for (int i = 0; i < cloud->size(); i++) {
+        if (zMax - 5 < cloud->at(i).z) {
+            filteredCbyZ->push_back(cloud->at(i));
         }
     }
     std::cout << "Pocet po filtraci roof: " << filteredCbyZ->size() << std::endl;
@@ -302,104 +302,53 @@ void Roofer::visualize(const boost::shared_ptr<pcl::visualization::PCLVisualizer
     viewer->addLine(center, pcl::PointXYZ(center.x, center.y, center.z + 10), 0, 0, 1.0, "Z");
 }
 
-std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> Roofer::fromRidgesAndWholeCluster(){
-
-
-    pcl::PointCloud<pcl::PointXYZ>::Ptr copyM_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-
+std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> Roofer::fromRidgesAndWholeCluster() {
+    EuclidianClusterSegmentation segmentation;
+    // pcl::PointCloud<pcl::PointXYZ>::Ptr copyM_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+    bool bcloud[m_cloud->size()] = {};
+    pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+    kdtree.setInputCloud(m_cloud);
     float radius = 2;
 
+    // for(int i = 0; i < m_cloud->size(); i++) {
+    //     copyM_cloud->push_back(m_cloud->at(i));
+    // }
 
-    for( int i = 0; i < m_cloud->size(); i++){
-        copyM_cloud->push_back(m_cloud->at(i));
-        }
 
-    EuclidianClusterSegmentation segmentation;
-
-    std::cout << "Pocet bodu v m_cloud: " << copyM_cloud->size() << std::endl;
-    auto roofRidges = getRoofRidge(copyM_cloud);
+    std::cout << "Pocet bodu v m_cloud: " << m_cloud->size() << std::endl;
+    auto roofRidges = getRoofRidge(m_cloud);
     std::cout << "Pocet bodu ve hrbetu: " << roofRidges->size() << std::endl;
     auto ridgeSegments = segmentation.segmentCloud(roofRidges);
     std::cout << "Pocet segmentu: " << ridgeSegments.size() << std::endl;
-    for (int i = 0; i < ridgeSegments.size(); i++){
-        std::cout << "first cajklus u this" << std::endl;
-        for (int j = 0; j < ridgeSegments.at(i)->size(); j++){
-            //std::cout << "second cajklus u this" << std::endl;
-            if (copyM_cloud->size() != 0){
-                pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
-                std::vector<int> pointIdxRadiusSearch;
-                std::vector<float> pointRadiusSquaredDistance;
-                kdtree.setInputCloud(copyM_cloud);
 
-                if(kdtree.radiusSearch(ridgeSegments.at(i)->at(j), radius, pointIdxRadiusSearch, pointRadiusSquaredDistance))
-                {
-                    for (int k = 0; k < pointIdxRadiusSearch.size(); k++){
+    for (auto ridgeSegment : ridgeSegments) {
+        std::vector<pcl::PointXYZ> toPush;
 
-                        std::cout <<"i: " << i << ", j: " << j << ", k: " << k << std::endl;
-                        std::cout << "ridgeSegments.at(i)->push_back(copyM_cloud->at(pointIdxRadiusSearch.at(k)));" << std::endl;
-                        ridgeSegments.at(i)->push_back(copyM_cloud->at(pointIdxRadiusSearch.at(k)));
-                        std::cout << "copyM_cloud->erase(copyM_cloud->begin() + pointIdxRadiusSearch.at(k));" << std::endl;
-                        copyM_cloud->erase(copyM_cloud->begin() + pointIdxRadiusSearch.at(k));
+        do {
+            toPush.clear();
+            for (auto rsit = ridgeSegment->begin(); rsit != ridgeSegment->end(); rsit++) {
+                if (m_cloud->size() != 0) {
+                    std::vector<int> pointIdxRadiusSearch;
+                    std::vector<float> pointRadiusSquaredDistance;
+
+                    if (kdtree.radiusSearch((*rsit), radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0) {
+                        for (int i : pointIdxRadiusSearch) {
+                            if (bcloud[i] == false && (rsit->z > m_cloud->at(i).z)) {
+                                toPush.push_back(m_cloud->at(i));
+                                bcloud[i] = true;
+                            }
                         }
-
+                    }
                 }
             }
-            else{
-                break;
+            for (auto pointToAdd : toPush) {
+                ridgeSegment->push_back(pointToAdd);
             }
-
-
         }
+        while (!toPush.empty());
+
     }
-    std::cout << "end of insojd u this" << std::endl;
 
     return ridgeSegments;
 
-
-
-
-
-
-
-    //if (kdtree.radiusSearch(point, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) < 0) {
-    //    return point;
-    //}
-}
-
-
-
-void jirkuvMagic() {
-//    if(uhelDegress > 90 || uhelDegress > 270){
-//        if (uhelDegress > 270){
-//            uhelDegress -= 270;
-//            uhelDegress = uhelDegress/90;
-//            posunutyBod1.x = bod1.x + 10*uhelDegress;
-//            posunutyBod1.y = bod1.y - 10/uhelDegress;
-//            //  pricitani x odecitani na ose y
-//        }
-//        else{
-//            uhelDegress -= 0;
-//            uhelDegress = uhelDegress/90;
-//            posunutyBod1.x = bod1.x + 10/uhelDegress;
-//            posunutyBod1.y = bod1.y + 10*uhelDegress;
-//            // pricitani x pricitani na ose y
-//        }
-//    }
-//    else{
-//        if (uhelDegress > 180){
-//            uhelDegress -= 180;
-//            uhelDegress = uhelDegress/90;
-//            posunutyBod1.x = bod1.x - 10/uhelDegress;
-//            posunutyBod1.y = bod1.y - 10*uhelDegress;
-//            // odecitani na x odecitani na ose y
-//        }
-//        else
-//        {
-//            uhelDegress -= 90;
-//            uhelDegress = uhelDegress/90;
-//            posunutyBod1.x = bod1.x + 10/uhelDegress;
-//            posunutyBod1.y = bod1.y - 10*uhelDegress;
-//            // pricitani na x odecitani na ose y
-//        }
-//    }
 }
