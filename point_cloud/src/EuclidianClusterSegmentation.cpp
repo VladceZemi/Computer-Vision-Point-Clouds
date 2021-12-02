@@ -29,7 +29,7 @@ EuclidianClusterSegmentation::segmentCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr i
           cluster->width = cluster->size();
           cluster->height = 1;
           cluster->is_dense = true;
-          std::cout << "Mračno má: " << cluster->size () << " bodů." << std::endl;
+          //std::cout << "Mračno má: " << cluster->size () << " bodů." << std::endl;
           j++;
           segmentedClouds.push_back(cluster);
       }

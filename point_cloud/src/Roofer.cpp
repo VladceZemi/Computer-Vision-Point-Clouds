@@ -30,6 +30,17 @@ void Roofer::roof() {
 
     m_roofPoints.push_back(ridgePoint1);
     m_roofPoints.push_back(ridgePoint2);
+    std::cout << "RidgePoint 1 x a y: " << m_roofPoints.at(0).x << ", " << m_roofPoints.at(0).y << std::endl;
+    std::cout << "RidgePoint 2 x a y: " << m_roofPoints.at(1).x << ", " << m_roofPoints.at(1).y << std::endl;
+
+    std::cout << "pred from ridgesandwhole cluster" << std::endl;
+    auto segmentedByRidges = fromRidgesAndWholeCluster(); // tohle je vector segmentu, proto posilam do dalsi metody zatim jen z prvni pozice
+
+    std::cout << "Po from ridgesandwhole cluster" << std::endl;
+    std::cout << "Pocet bodu v segmentu na prvni pozici: " << segmentedByRidges.at(0)->size() << std::endl;
+
+    auto bottomOfRoof = getRoofBottom(segmentedByRidges.at(0));
+    std::cout << "Bottom of roof: " << bottomOfRoof->size() << std::endl;
 
     getCornerPoints(bottomOfRoof);
 }
@@ -44,7 +55,6 @@ pcl::PointXYZ Roofer::getMaxZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
             zMaxPoint = cloud->at(i);
         }
     }
-
     return zMaxPoint;
 }
 
@@ -113,28 +123,28 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::getRoofRidge(pcl::PointCloud<pcl::Po
     float zMax = getMaxZPoint(m_cloud).z;
 
     for (int i = 0; i < m_cloud->size(); i++) {
-        if ((zMax - 2) < m_cloud->at(i).z) {
+        if (zMax - 5< m_cloud->at(i).z) {
             filteredCbyZ->push_back(m_cloud->at(i));
         }
     }
-
+    std::cout << "Pocet po filtraci roof: " << filteredCbyZ->size() << std::endl;
     return filteredCbyZ;
 }
 
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::getRoofBottom(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr filteredCbyZ(new pcl::PointCloud<pcl::PointXYZ>());
-    float zMin = getMinZPoint(m_cloud).z;
+    float zMin = getMinZPoint(cloud).z;
 
-    std::cout << "Pred filtraci: " << m_cloud->size() << std::endl;
+    std::cout << "Pred filtraci bottom: " << cloud->size() << std::endl;
 
-    for (int i = 0; i < m_cloud->size(); i++) {
-        if ((zMin + 10) > m_cloud->at(i).z) {
-            filteredCbyZ->push_back(m_cloud->at(i));
+    for (int i = 0; i < cloud->size(); i++) {
+        if ((zMin + 5) > cloud->at(i).z) {
+            filteredCbyZ->push_back(cloud->at(i));
         }
     }
-    std::cout << "Po filtraci: " << filteredCbyZ->size() << std::endl;
-    std::cout << zMin + TOLERATION << std::endl;
+    std::cout << "Po filtraci bottom: " << filteredCbyZ->size() << std::endl;
+    std::cout << zMin + 2 << std::endl;
     return filteredCbyZ;
 }
 
@@ -170,6 +180,8 @@ void Roofer::getCornerPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     //std::cout << "Maximalni hodnota na ose Y: " << maxY << std::endl;
     //std::cout << "Maximalni hodnota na ose Z: " << maxZ << std::endl;
 
+    std::cout << "GetCorners cloud: " << cloud->size() << std::endl;
+
 	for (auto point : *cloud) {
         if ((point.y - point.x) > (firstCorner.y - firstCorner.x)) {
             firstCorner = point;
@@ -204,10 +216,13 @@ void Roofer::getCornerPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
         //    maxZ = point.z;
         //}
     }
+
     m_roofPoints.push_back(firstCorner);
     m_roofPoints.push_back(secondCorner);
     m_roofPoints.push_back(thirdCorner);
     m_roofPoints.push_back(fourthCorner);
+
+    std::cout<< "First corner osa X: " << m_roofPoints.at(2).x << std::endl;
 
     //std::cout << "Rozsah na ose X: " << maxX - minX << std::endl;
     //std::cout << "Rozsah na ose Y: " << maxY - minY << std::endl;
@@ -285,4 +300,106 @@ void Roofer::visualize(const boost::shared_ptr<pcl::visualization::PCLVisualizer
     viewer->addLine(center, pcl::PointXYZ(center.x + 10, center.y, center.z), 1.0, 0, 0, "X");
     viewer->addLine(center, pcl::PointXYZ(center.x, center.y + 10, center.z), 0, 1.0, 0, "Y");
     viewer->addLine(center, pcl::PointXYZ(center.x, center.y, center.z + 10), 0, 0, 1.0, "Z");
+}
+
+std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> Roofer::fromRidgesAndWholeCluster(){
+
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr copyM_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+
+    float radius = 2;
+
+
+    for( int i = 0; i < m_cloud->size(); i++){
+        copyM_cloud->push_back(m_cloud->at(i));
+        }
+
+    EuclidianClusterSegmentation segmentation;
+
+    std::cout << "Pocet bodu v m_cloud: " << copyM_cloud->size() << std::endl;
+    auto roofRidges = getRoofRidge(copyM_cloud);
+    std::cout << "Pocet bodu ve hrbetu: " << roofRidges->size() << std::endl;
+    auto ridgeSegments = segmentation.segmentCloud(roofRidges);
+    std::cout << "Pocet segmentu: " << ridgeSegments.size() << std::endl;
+    for (int i = 0; i < ridgeSegments.size(); i++){
+        std::cout << "first cajklus u this" << std::endl;
+        for (int j = 0; j < ridgeSegments.at(i)->size(); j++){
+            //std::cout << "second cajklus u this" << std::endl;
+            if (copyM_cloud->size() != 0){
+                pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+                std::vector<int> pointIdxRadiusSearch;
+                std::vector<float> pointRadiusSquaredDistance;
+                kdtree.setInputCloud(copyM_cloud);
+
+                if(kdtree.radiusSearch(ridgeSegments.at(i)->at(j), radius, pointIdxRadiusSearch, pointRadiusSquaredDistance))
+                {
+                    for (int k = 0; k < pointIdxRadiusSearch.size(); k++){
+
+                        std::cout <<"i: " << i << ", j: " << j << ", k: " << k << std::endl;
+                        std::cout << "ridgeSegments.at(i)->push_back(copyM_cloud->at(pointIdxRadiusSearch.at(k)));" << std::endl;
+                        ridgeSegments.at(i)->push_back(copyM_cloud->at(pointIdxRadiusSearch.at(k)));
+                        std::cout << "copyM_cloud->erase(copyM_cloud->begin() + pointIdxRadiusSearch.at(k));" << std::endl;
+                        copyM_cloud->erase(copyM_cloud->begin() + pointIdxRadiusSearch.at(k));
+                        }
+
+                }
+            }
+            else{
+                break;
+            }
+
+
+        }
+    }
+    std::cout << "end of insojd u this" << std::endl;
+
+    return ridgeSegments;
+
+
+
+
+
+
+
+    //if (kdtree.radiusSearch(point, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) < 0) {
+    //    return point;
+    //}
+}
+
+
+
+void jirkuvMagic() {
+//    if(uhelDegress > 90 || uhelDegress > 270){
+//        if (uhelDegress > 270){
+//            uhelDegress -= 270;
+//            uhelDegress = uhelDegress/90;
+//            posunutyBod1.x = bod1.x + 10*uhelDegress;
+//            posunutyBod1.y = bod1.y - 10/uhelDegress;
+//            //  pricitani x odecitani na ose y
+//        }
+//        else{
+//            uhelDegress -= 0;
+//            uhelDegress = uhelDegress/90;
+//            posunutyBod1.x = bod1.x + 10/uhelDegress;
+//            posunutyBod1.y = bod1.y + 10*uhelDegress;
+//            // pricitani x pricitani na ose y
+//        }
+//    }
+//    else{
+//        if (uhelDegress > 180){
+//            uhelDegress -= 180;
+//            uhelDegress = uhelDegress/90;
+//            posunutyBod1.x = bod1.x - 10/uhelDegress;
+//            posunutyBod1.y = bod1.y - 10*uhelDegress;
+//            // odecitani na x odecitani na ose y
+//        }
+//        else
+//        {
+//            uhelDegress -= 90;
+//            uhelDegress = uhelDegress/90;
+//            posunutyBod1.x = bod1.x + 10/uhelDegress;
+//            posunutyBod1.y = bod1.y - 10*uhelDegress;
+//            // pricitani na x odecitani na ose y
+//        }
+//    }
 }

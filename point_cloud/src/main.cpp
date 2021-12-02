@@ -24,7 +24,10 @@ int main (int argc, char** argv)
     cloud = loader.loadCloud("../data/segmented.ply");
 
     EuclidianClusterSegmentation segmentation;
+    Roofer roofer(cloud);
     cloudSegments = segmentation.segmentCloud(cloud);
+
+
 
     visualization.initializeVisualization();
     visualization.m_viewer->registerKeyboardCallback(keyboardEventCallback, (void *)&visualization.m_viewer);

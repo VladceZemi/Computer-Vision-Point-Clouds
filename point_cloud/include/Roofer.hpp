@@ -35,6 +35,7 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr getRoofBottom(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     std::tuple<pcl::PointXYZ, pcl::PointXYZ> getFarthestPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     void getCornerPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> fromRidgesAndWholeCluster();
 public:
     Roofer(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     void roof();

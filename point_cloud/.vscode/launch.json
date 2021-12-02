@@ -5,7 +5,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/lvr",
+            "program": "${workspaceFolder}/build/cloud",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build",
