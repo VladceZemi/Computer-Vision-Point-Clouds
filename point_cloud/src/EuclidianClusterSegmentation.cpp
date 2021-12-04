@@ -13,7 +13,7 @@ EuclidianClusterSegmentation::segmentCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr i
     std::vector<pcl::PointIndices> clusterIndices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> extraction;
     extraction.setClusterTolerance (1.2);
-    extraction.setMinClusterSize (100);
+    extraction.setMinClusterSize (70);
     extraction.setMaxClusterSize (100000);
     extraction.setSearchMethod (kdTree);
     extraction.setInputCloud (inputCloud);

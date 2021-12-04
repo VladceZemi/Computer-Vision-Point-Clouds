@@ -20,18 +20,22 @@ void roofAndVisualizeSegment();
 
 int main (int argc, char** argv)
 {
+    visualization.initializeVisualization();
+    visualization.m_viewer->registerKeyboardCallback(keyboardEventCallback, (void *)&visualization.m_viewer);
+
     PLYLoader loader;
     cloud = loader.loadCloud("../data/segmented.ply");
 
     EuclidianClusterSegmentation segmentation;
-    Roofer roofer(cloud);
     cloudSegments = segmentation.segmentCloud(cloud);
 
+    for (auto segment : cloudSegments) {
+        Roofer roofer(segment);
+        roofer.roof();
+        roofer.visualize(visualization.m_viewer);
+    }
 
-
-    visualization.initializeVisualization();
-    visualization.m_viewer->registerKeyboardCallback(keyboardEventCallback, (void *)&visualization.m_viewer);
-//    visualization.addCloudWithRandomColor()
+//    visualization.addCloudWithRandomColor(cloud);
     visualization.runVisualization();
 
 //    visualization.m_viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_REPRESENTATION, pcl::visualization::PCL_VISUALIZER_REPRESENTATION_WIREFRAME, "Sp1");

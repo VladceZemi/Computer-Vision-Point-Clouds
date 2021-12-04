@@ -1,5 +1,7 @@
 #include "Roofer.hpp"
 
+int Roofer::numCld = 0;
+
 bool pointsEq(pcl::PointXYZ p1, pcl::PointXYZ p2) {
     return (
         p1.x == p2.x &&
@@ -10,6 +12,7 @@ bool pointsEq(pcl::PointXYZ p1, pcl::PointXYZ p2) {
 
 
 Roofer::Roofer(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+    numCld += 1;
     for(auto point : *cloud) {
         m_centroid.add(point);
     }
@@ -17,32 +20,22 @@ Roofer::Roofer(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 }
 
 void Roofer::roof() {
-    auto filteredCloud = filterRoofNoise(m_cloud);
-    std::cout << "m_cloud: " << m_cloud->size() << " filteredCloud: " << filteredCloud->size() << std::endl;
-    m_cloud = filteredCloud;
+    m_cloud = filterRoofNoise(m_cloud);
+    m_segments = fromRidgesAndWholeCluster(m_cloud);
 
-    auto roofRidge = getRoofRidge(filteredCloud);
-    // auto bottomOfRoof = getRoofBottom(filteredCloud);
-
-    auto farthestPoints = getFarthestPoints(roofRidge);
-    pcl::PointXYZ ridgePoint1 = getMaxZPointNear(std::get<0>(farthestPoints), 1.5, roofRidge);
-    pcl::PointXYZ ridgePoint2 = getMaxZPointNear(std::get<1>(farthestPoints), 1.5, roofRidge);
-
-    m_roofPoints.push_back(ridgePoint1);
-    m_roofPoints.push_back(ridgePoint2);
-    std::cout << "RidgePoint 1 x a y: " << m_roofPoints.at(0).x << ", " << m_roofPoints.at(0).y << std::endl;
-    std::cout << "RidgePoint 2 x a y: " << m_roofPoints.at(1).x << ", " << m_roofPoints.at(1).y << std::endl;
-
-    std::cout << "pred from ridgesandwhole cluster" << std::endl;
-    auto segmentedByRidges = fromRidgesAndWholeCluster(); // tohle je vector segmentu, proto posilam do dalsi metody zatim jen z prvni pozice
-
-    std::cout << "Po from ridgesandwhole cluster" << std::endl;
-    std::cout << "Pocet bodu v segmentu na prvni pozici: " << segmentedByRidges.at(0)->size() << std::endl;
-
-    auto bottomOfRoof = getRoofBottom(segmentedByRidges.at(0));
-    std::cout << "Bottom of roof: " << bottomOfRoof->size() << std::endl;
-
-    getCornerPoints(bottomOfRoof);
+    for (int i = 0; i < m_segments.size(); i++) {
+        m_segmentRoofPoints.push_back(std::vector<pcl::PointXYZ>());
+        auto segment = m_segments.at(i);
+        auto roofRidge = getRoofRidge(segment);
+        auto farthestPoints = getFarthestPoints(roofRidge);
+        pcl::PointXYZ ridgePoint1 = getMaxZPointNear(std::get<0>(farthestPoints), 1.5, roofRidge);
+        pcl::PointXYZ ridgePoint2 = getMaxZPointNear(std::get<1>(farthestPoints), 1.5, roofRidge);
+        m_segmentRoofPoints.at(i).push_back(ridgePoint1);
+        m_segmentRoofPoints.at(i).push_back(ridgePoint2);
+        for (auto cornerPoint : getCornerPoints(segment)) {
+            m_segmentRoofPoints.at(i).push_back(cornerPoint);
+        }
+    }
 }
 
 pcl::PointXYZ Roofer::getMaxZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
@@ -110,7 +103,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::filterRoofNoise(pcl::PointCloud<pcl:
 
     for (auto point : *cloud) {
         float h = round(point.z);
-        if (histogram[h] > 10) {
+        if (histogram[h] > 20) {
             filteredCloud->push_back(point);
         }
     }
@@ -123,11 +116,11 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::getRoofRidge(pcl::PointCloud<pcl::Po
     float zMax = getMaxZPoint(cloud).z;
 
     for (int i = 0; i < cloud->size(); i++) {
-        if (zMax - 5 < cloud->at(i).z) {
+        if (zMax - 2 < cloud->at(i).z) {
             filteredCbyZ->push_back(cloud->at(i));
         }
     }
-    std::cout << "Pocet po filtraci roof: " << filteredCbyZ->size() << std::endl;
+
     return filteredCbyZ;
 }
 
@@ -139,12 +132,11 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::getRoofBottom(pcl::PointCloud<pcl::P
     std::cout << "Pred filtraci bottom: " << cloud->size() << std::endl;
 
     for (int i = 0; i < cloud->size(); i++) {
-        if ((zMin + 5) > cloud->at(i).z) {
+        if ((zMin + 2) > cloud->at(i).z) {
             filteredCbyZ->push_back(cloud->at(i));
         }
     }
-    std::cout << "Po filtraci bottom: " << filteredCbyZ->size() << std::endl;
-    std::cout << zMin + 2 << std::endl;
+
     return filteredCbyZ;
 }
 
@@ -167,156 +159,140 @@ std::tuple<pcl::PointXYZ, pcl::PointXYZ> Roofer::getFarthestPoints(pcl::PointClo
     return std::make_tuple(point1, point2);
 }
 
-void Roofer::getCornerPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+std::vector<pcl::PointXYZ> Roofer::getCornerPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     pcl::PointXYZ firstCorner(std::numeric_limits<float>::max(), std::numeric_limits<float>::min(), 0);
     pcl::PointXYZ secondCorner(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), 0);
     pcl::PointXYZ thirdCorner(std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), 0);
     pcl::PointXYZ fourthCorner(std::numeric_limits<float>::min(), std::numeric_limits<float>::max(), 0);
 
-    //std::cout << "Minimalni hodnota na ose X: " << minX << std::endl;
-    //std::cout << "Minimalni hodnota na ose Y: " << minY << std::endl;
-    //std::cout << "Minimalni hodnota na ose Z: " << minZ << std::endl;
-    //std::cout << "Maximalni hodnota na ose X: " << maxX << std::endl;
-    //std::cout << "Maximalni hodnota na ose Y: " << maxY << std::endl;
-    //std::cout << "Maximalni hodnota na ose Z: " << maxZ << std::endl;
-
-    std::cout << "GetCorners cloud: " << cloud->size() << std::endl;
-
-	for (auto point : *cloud) {
+    for (auto point : *cloud) {
         if ((point.y - point.x) > (firstCorner.y - firstCorner.x)) {
             firstCorner = point;
         }
+
         if ((point.x + point.y)  < (secondCorner.x + secondCorner.y)) {
             secondCorner = point;
         }
+
         if ((point.x + point.y) > (thirdCorner.x + thirdCorner.y)) {
             thirdCorner = point;
         }
+
         if ((point.x - point.y) > (fourthCorner.x - fourthCorner.y))  {
             fourthCorner = point;
         }
-
-        //if (point.x < minX){
-        //    minX = point.x;
-        //}
-        //if (point.y < minY){
-        //    minY = point.y;
-        //}
-        //if (point.z < minZ){
-        //    minZ = point.z;
-        //}
-//
-        //if (point.x > maxX){
-        //    maxX = point.x;
-        //}
-        //if (point.y > maxY){
-        //    maxY = point.y;
-        //}
-        //if (point.z > maxZ){
-        //    maxZ = point.z;
-        //}
     }
 
-    m_roofPoints.push_back(firstCorner);
-    m_roofPoints.push_back(secondCorner);
-    m_roofPoints.push_back(thirdCorner);
-    m_roofPoints.push_back(fourthCorner);
+    std::vector<pcl::PointXYZ> cornerPoints;
+    cornerPoints.push_back(firstCorner);
+    cornerPoints.push_back(secondCorner);
+    cornerPoints.push_back(thirdCorner);
+    cornerPoints.push_back(fourthCorner);
+    return cornerPoints;
+}
 
-    std::cout<< "First corner osa X: " << m_roofPoints.at(2).x << std::endl;
-
-    //std::cout << "Rozsah na ose X: " << maxX - minX << std::endl;
-    //std::cout << "Rozsah na ose Y: " << maxY - minY << std::endl;
-    //std::cout << "Rozsah na ose Z: " << maxZ - minZ << std::endl;
-
+std::string Roofer::endMe(std::string fuckMe, int ligMaBalls) {
+    std::stringstream ss;
+    ss << "c" << numCld << "s" << ligMaBalls << fuckMe;
+    return ss.str();
 }
 
 void Roofer::visualize(const boost::shared_ptr<pcl::visualization::PCLVisualizer>& viewer) {
-    pcl::PointXYZ nearest01Point;
-    pcl::PointXYZ nearest02Point;
-    pcl::PointXYZ nearest11Point;
-    pcl::PointXYZ nearest12Point;
+    // pcl::PointXYZ center;
+    // m_centroid.get(center);
+    // viewer->addLine(center, pcl::PointXYZ(center.x + 10, center.y, center.z), 1.0, 0, 0, "X");
+    // viewer->addLine(center, pcl::PointXYZ(center.x, center.y + 10, center.z), 0, 1.0, 0, "Y");
+    // viewer->addLine(center, pcl::PointXYZ(center.x, center.y, center.z + 10), 0, 0, 1.0, "Z");
+    viewer->addPointCloud(m_cloud, endMe("cloud", 100));
+    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, endMe("cloud", 100));
+    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1.0, 1.0, 1.0, endMe("cloud", 100));
 
-    float dist0LT = abs(m_roofPoints.at(2).x - m_roofPoints.at(0).x) + abs(m_roofPoints.at(2).y - m_roofPoints.at(0).y);
-    float dist1LT = abs(m_roofPoints.at(2).x - m_roofPoints.at(1).x) + abs(m_roofPoints.at(2).y - m_roofPoints.at(1).y);
+    for (int i = 0; i < m_segmentRoofPoints.size(); i++) {
+        auto roofPoints = m_segmentRoofPoints.at(i);
 
-    float dist0LD = abs(m_roofPoints.at(3).x - m_roofPoints.at(0).x) + abs(m_roofPoints.at(3).y - m_roofPoints.at(0).y);
-    float dist1LD = abs(m_roofPoints.at(3).x - m_roofPoints.at(1).x) + abs(m_roofPoints.at(3).y - m_roofPoints.at(1).y);
+        pcl::PointXYZ nearest01Point;
+        pcl::PointXYZ nearest02Point;
+        pcl::PointXYZ nearest11Point;
+        pcl::PointXYZ nearest12Point;
 
-    if (dist0LT < dist1LT) {
-        if (dist0LD < dist1LD) {
-            nearest01Point = m_roofPoints.at(2); //
-            nearest02Point = m_roofPoints.at(3); //
-            nearest11Point = m_roofPoints.at(4);
-            nearest12Point = m_roofPoints.at(5);
+        float dist0LT = abs(roofPoints.at(2).x - roofPoints.at(0).x) + abs(roofPoints.at(2).y - roofPoints.at(0).y);
+        float dist1LT = abs(roofPoints.at(2).x - roofPoints.at(1).x) + abs(roofPoints.at(2).y - roofPoints.at(1).y);
+
+        float dist0LD = abs(roofPoints.at(3).x - roofPoints.at(0).x) + abs(roofPoints.at(3).y - roofPoints.at(0).y);
+        float dist1LD = abs(roofPoints.at(3).x - roofPoints.at(1).x) + abs(roofPoints.at(3).y - roofPoints.at(1).y);
+
+        if (dist0LT < dist1LT) {
+            if (dist0LD < dist1LD) {
+                nearest01Point = roofPoints.at(2); //
+                nearest02Point = roofPoints.at(3); //
+                nearest11Point = roofPoints.at(4);
+                nearest12Point = roofPoints.at(5);
+            }
+            else {
+                nearest01Point = roofPoints.at(2); //
+                nearest02Point = roofPoints.at(4);
+                nearest11Point = roofPoints.at(3); //
+                nearest12Point = roofPoints.at(5);
+            }
         }
         else {
-            nearest01Point = m_roofPoints.at(2); //
-            nearest02Point = m_roofPoints.at(4);
-            nearest11Point = m_roofPoints.at(3); //
-            nearest12Point = m_roofPoints.at(5);
+            if (dist0LD < dist1LD) {
+                nearest01Point = roofPoints.at(3); //
+                nearest02Point = roofPoints.at(5);
+                nearest11Point = roofPoints.at(2); //
+                nearest12Point = roofPoints.at(4);
+            }
+            else {
+                nearest01Point = roofPoints.at(4);
+                nearest02Point = roofPoints.at(5);
+                nearest11Point = roofPoints.at(2); //
+                nearest12Point = roofPoints.at(3); //
+            }
         }
+
+
+        int r = (rand() % 255);
+        int g = (rand() % 255);
+        int b = (rand() % 255);
+
+        std::string cloudName = endMe("roofPoints", i);
+        viewer->addPointCloud(m_segments.at(i), cloudName);
+        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, cloudName);
+        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, (double)r/255, (double)g/255, (double)b/255, cloudName);
+
+
+        viewer->addLine(roofPoints.at(0), roofPoints.at(1), 255, 0, 0, endMe("roofTop1", i));
+
+        viewer->addLine(roofPoints.at(0), nearest01Point, 255, 0, 0, endMe("roofSide2", i));
+        viewer->addLine(roofPoints.at(0), nearest02Point, 255, 0, 0, endMe("roofSide3", i));
+
+        viewer->addLine(roofPoints.at(1), nearest11Point, 255, 0, 0, endMe("roofSide4", i));
+        viewer->addLine(roofPoints.at(1), nearest12Point, 255, 0, 0, endMe("roofSide5", i));
+
+        viewer->addLine(roofPoints.at(5), roofPoints.at(3), 255, 0, 0, endMe("statueLine1", i));
+        viewer->addLine(roofPoints.at(5), roofPoints.at(4), 255, 0, 0, endMe("statueLine2", i));
+        viewer->addLine(roofPoints.at(4), roofPoints.at(2), 255, 0, 0, endMe("statueLine3", i));
+        viewer->addLine(roofPoints.at(2), roofPoints.at(3), 255, 0, 0, endMe("statueLine4", i));
+
+        // viewer->addText3D("0", roofPoints.at(0), 1.0, 1.0, 1.0, 1.0, endMe("pt0", i));
+        // viewer->addText3D("1", roofPoints.at(1), 1.0, 1.0, 1.0, 1.0, endMe("pt1", i));
+        // viewer->addText3D("leftTop", roofPoints.at(2), 1.0, 1.0, 1.0, 1.0, endMe("leftTop", i));
+        // viewer->addText3D("leftDown", roofPoints.at(3), 1.0, 1.0, 1.0, 1.0, endMe("leftDown", i));
+        // viewer->addText3D("rightTop", roofPoints.at(4), 1.0, 1.0, 1.0, 1.0, endMe("rightTop", i));
+        // viewer->addText3D("rightDown", roofPoints.at(5), 1.0, 1.0, 1.0, 1.0, endMe("rightDown", i));
     }
-    else {
-        if (dist0LD < dist1LD) {
-            nearest01Point = m_roofPoints.at(3); //
-            nearest02Point = m_roofPoints.at(4);
-            nearest11Point = m_roofPoints.at(2); //
-            nearest12Point = m_roofPoints.at(5);
-        }
-        else {
-            nearest01Point = m_roofPoints.at(4);
-            nearest02Point = m_roofPoints.at(5);
-            nearest11Point = m_roofPoints.at(2); //
-            nearest12Point = m_roofPoints.at(3); //
-        }
-    }
-
-    viewer->addPointCloud(m_cloud, "cloud");
-    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "cloud");
-    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1.0, 1.0, 1.0, "cloud");
-
-    viewer->addLine(m_roofPoints.at(0), m_roofPoints.at(1), 255, 0, 0, "roofTop1");
-
-    viewer->addLine(m_roofPoints.at(0), nearest01Point, 255, 0, 0, "roofSide2");
-    viewer->addLine(m_roofPoints.at(0), nearest02Point, 255, 0, 0, "roofSide3");
-
-    viewer->addLine(m_roofPoints.at(1), nearest11Point, 255, 0, 0, "roofSide4");
-    viewer->addLine(m_roofPoints.at(1), nearest12Point, 255, 0, 0, "roofSide5");
-
-    viewer->addLine(m_roofPoints.at(5), m_roofPoints.at(3), 255, 0, 0, "statueLine1");
-    viewer->addLine(m_roofPoints.at(5), m_roofPoints.at(4), 255, 0, 0, "statueLine2");
-    viewer->addLine(m_roofPoints.at(4), m_roofPoints.at(2), 255, 0, 0, "statueLine3");
-    viewer->addLine(m_roofPoints.at(2), m_roofPoints.at(3), 255, 0, 0, "statueLine4");
-
-    viewer->addText3D("0", m_roofPoints.at(0), 1.0, 1.0, 1.0, 1.0, "pt0");
-    viewer->addText3D("1", m_roofPoints.at(1), 1.0, 1.0, 1.0, 1.0, "pt1");
-    viewer->addText3D("leftTop", m_roofPoints.at(2), 1.0, 1.0, 1.0, 1.0, "leftTop");
-    viewer->addText3D("leftDown", m_roofPoints.at(3), 1.0, 1.0, 1.0, 1.0, "leftDown");
-    viewer->addText3D("rightTop", m_roofPoints.at(4), 1.0, 1.0, 1.0, 1.0, "rightTop");
-    viewer->addText3D("rightDown", m_roofPoints.at(5), 1.0, 1.0, 1.0, 1.0, "rightDown");
-
-    pcl::PointXYZ center;
-    m_centroid.get(center);
-    viewer->addLine(center, pcl::PointXYZ(center.x + 10, center.y, center.z), 1.0, 0, 0, "X");
-    viewer->addLine(center, pcl::PointXYZ(center.x, center.y + 10, center.z), 0, 1.0, 0, "Y");
-    viewer->addLine(center, pcl::PointXYZ(center.x, center.y, center.z + 10), 0, 0, 1.0, "Z");
 }
 
-std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> Roofer::fromRidgesAndWholeCluster() {
+std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> Roofer::fromRidgesAndWholeCluster(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     EuclidianClusterSegmentation segmentation;
-    // pcl::PointCloud<pcl::PointXYZ>::Ptr copyM_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-    bool bcloud[m_cloud->size()] = {};
     pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
-    kdtree.setInputCloud(m_cloud);
-    float radius = 2;
+    kdtree.setInputCloud(cloud);
+    bool bcloud[cloud->size()] = {};
+    std::map<pcl::PointXYZ, bool> cloud_bmap;
+    const float radius = 2;
 
-    // for(int i = 0; i < m_cloud->size(); i++) {
-    //     copyM_cloud->push_back(m_cloud->at(i));
-    // }
-
-
-    std::cout << "Pocet bodu v m_cloud: " << m_cloud->size() << std::endl;
-    auto roofRidges = getRoofRidge(m_cloud);
+    std::cout << "Pocet bodu v cloud: " << cloud->size() << std::endl;
+    auto roofRidges = getRoofRidge(cloud);
     std::cout << "Pocet bodu ve hrbetu: " << roofRidges->size() << std::endl;
     auto ridgeSegments = segmentation.segmentCloud(roofRidges);
     std::cout << "Pocet segmentu: " << ridgeSegments.size() << std::endl;
@@ -327,14 +303,14 @@ std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> Roofer::fromRidgesAndWholeClust
         do {
             toPush.clear();
             for (auto rsit = ridgeSegment->begin(); rsit != ridgeSegment->end(); rsit++) {
-                if (m_cloud->size() != 0) {
+                if (cloud->size() != 0) {
                     std::vector<int> pointIdxRadiusSearch;
                     std::vector<float> pointRadiusSquaredDistance;
 
-                    if (kdtree.radiusSearch((*rsit), radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0) {
+                    if (kdtree.radiusSearch((*rsit), 2, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0) {
                         for (int i : pointIdxRadiusSearch) {
-                            if (bcloud[i] == false && (rsit->z > m_cloud->at(i).z)) {
-                                toPush.push_back(m_cloud->at(i));
+                            if (bcloud[i] == false && (rsit->z > cloud->at(i).z)) {
+                                toPush.push_back(cloud->at(i));
                                 bcloud[i] = true;
                             }
                         }
@@ -350,5 +326,4 @@ std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> Roofer::fromRidgesAndWholeClust
     }
 
     return ridgeSegments;
-
 }

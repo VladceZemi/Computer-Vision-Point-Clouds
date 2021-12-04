@@ -5,6 +5,7 @@
 #include <tuple>
 #include <limits>
 #include <map>
+#include <cstdlib>
 
 #include <pcl/common/centroid.h>
 #include <pcl/common/common_headers.h>
@@ -15,18 +16,14 @@
 
 class Roofer {
 private:
-    float minX = std::numeric_limits<float>::max();
-    float minY = std::numeric_limits<float>::max();
-    float minZ = std::numeric_limits<float>::max();
-    float maxX = std::numeric_limits<float>::min();
-    float maxY = std::numeric_limits<float>::min();
-    float maxZ = std::numeric_limits<float>::min();
+    static int numCld;
 
-    const float TOLERATION = 0.5;
     pcl::PointCloud<pcl::PointXYZ>::Ptr m_cloud;
     pcl::CentroidPoint<pcl::PointXYZ> m_centroid;
-    std::vector<pcl::PointXYZ> m_roofPoints;
+    std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> m_segments;
+    std::vector<std::vector<pcl::PointXYZ>> m_segmentRoofPoints;
 
+    std::string endMe(std::string fuckMe, int ligMaBalls);
     pcl::PointXYZ getMaxZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     pcl::PointXYZ getMinZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     pcl::PointXYZ getMaxZPointNear(pcl::PointXYZ point, float radius, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
@@ -34,8 +31,9 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr getRoofRidge(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     pcl::PointCloud<pcl::PointXYZ>::Ptr getRoofBottom(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     std::tuple<pcl::PointXYZ, pcl::PointXYZ> getFarthestPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-    void getCornerPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-    std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> fromRidgesAndWholeCluster();
+    std::vector<pcl::PointXYZ> getCornerPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> fromRidgesAndWholeCluster(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+
 public:
     Roofer(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     void roof();
