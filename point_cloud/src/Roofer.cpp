@@ -26,7 +26,7 @@ void Roofer::roof() {
     for (int i = 0; i < m_segments.size(); i++) {
         m_segmentRoofPoints.push_back(std::vector<pcl::PointXYZ>());
         auto segment = m_segments.at(i);
-        auto roofRidge = getRoofRidge(segment);
+        auto roofRidge = getRoofRidge(segment,2);
         auto farthestPoints = getFarthestPoints(roofRidge);
         pcl::PointXYZ ridgePoint1 = getMaxZPointNear(std::get<0>(farthestPoints), 1.5, roofRidge);
         pcl::PointXYZ ridgePoint2 = getMaxZPointNear(std::get<1>(farthestPoints), 1.5, roofRidge);
@@ -111,12 +111,12 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::filterRoofNoise(pcl::PointCloud<pcl:
     return filteredCloud;
 }
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::getRoofRidge(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+pcl::PointCloud<pcl::PointXYZ>::Ptr Roofer::getRoofRidge(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, float toleration) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr filteredCbyZ(new pcl::PointCloud<pcl::PointXYZ>());
     float zMax = getMaxZPoint(cloud).z;
 
     for (int i = 0; i < cloud->size(); i++) {
-        if (zMax - 2 < cloud->at(i).z) {
+        if (zMax - toleration < cloud->at(i).z) {
             filteredCbyZ->push_back(cloud->at(i));
         }
     }
@@ -274,6 +274,26 @@ void Roofer::visualize(const boost::shared_ptr<pcl::visualization::PCLVisualizer
         viewer->addLine(roofPoints.at(4), roofPoints.at(2), 255, 0, 0, endMe("statueLine3", i));
         viewer->addLine(roofPoints.at(2), roofPoints.at(3), 255, 0, 0, endMe("statueLine4", i));
 
+        //Kresleni podstavy
+        auto down1 = roofPoints.at(2);
+        auto down2 = roofPoints.at(3);
+        auto down3 = roofPoints.at(4);
+        auto down4 = roofPoints.at(5);
+        down1.z = 582;
+        down2.z = 582;
+        down3.z = 582;
+        down4.z = 582;
+        viewer->addLine(roofPoints.at(2), down1, 255, 0, 0, endMe("downLine1", i));
+        viewer->addLine(roofPoints.at(3), down2, 255, 0, 0, endMe("downLine2", i));
+        viewer->addLine(roofPoints.at(4), down3, 255, 0, 0, endMe("downLine3", i));
+        viewer->addLine(roofPoints.at(5), down4, 255, 0, 0, endMe("downLine4", i));
+
+        viewer->addLine(down4, down2, 255, 0, 0, endMe("downStatue1", i));
+        viewer->addLine(down4, down3, 255, 0, 0, endMe("downStatue2", i));
+        viewer->addLine(down3, down1, 255, 0, 0, endMe("downStatue3", i));
+        viewer->addLine(down1, down2, 255, 0, 0, endMe("downStatue4", i));
+
+
         // viewer->addText3D("0", roofPoints.at(0), 1.0, 1.0, 1.0, 1.0, endMe("pt0", i));
         // viewer->addText3D("1", roofPoints.at(1), 1.0, 1.0, 1.0, 1.0, endMe("pt1", i));
         // viewer->addText3D("leftTop", roofPoints.at(2), 1.0, 1.0, 1.0, 1.0, endMe("leftTop", i));
@@ -292,7 +312,7 @@ std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> Roofer::fromRidgesAndWholeClust
     const float radius = 2;
 
     std::cout << "Pocet bodu v cloud: " << cloud->size() << std::endl;
-    auto roofRidges = getRoofRidge(cloud);
+    auto roofRidges = getRoofRidge(cloud,4);
     std::cout << "Pocet bodu ve hrbetu: " << roofRidges->size() << std::endl;
     auto ridgeSegments = segmentation.segmentCloud(roofRidges);
     std::cout << "Pocet segmentu: " << ridgeSegments.size() << std::endl;

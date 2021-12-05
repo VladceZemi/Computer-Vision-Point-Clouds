@@ -28,7 +28,7 @@ private:
     pcl::PointXYZ getMinZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     pcl::PointXYZ getMaxZPointNear(pcl::PointXYZ point, float radius, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     pcl::PointCloud<pcl::PointXYZ>::Ptr filterRoofNoise(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr getRoofRidge(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr getRoofRidge(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, float toleration);
     pcl::PointCloud<pcl::PointXYZ>::Ptr getRoofBottom(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     std::tuple<pcl::PointXYZ, pcl::PointXYZ> getFarthestPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     std::vector<pcl::PointXYZ> getCornerPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
