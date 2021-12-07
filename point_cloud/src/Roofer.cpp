@@ -304,7 +304,7 @@ void Roofer::visualize(const boost::shared_ptr<pcl::visualization::PCLVisualizer
 }
 
 std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> Roofer::fromRidgesAndWholeCluster(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
-    EuclidianClusterSegmentation segmentation;
+    EuclidianClusterSegmentation segmentation(20);
     pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
     kdtree.setInputCloud(cloud);
     bool bcloud[cloud->size()] = {};
@@ -327,7 +327,7 @@ std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> Roofer::fromRidgesAndWholeClust
                     std::vector<int> pointIdxRadiusSearch;
                     std::vector<float> pointRadiusSquaredDistance;
 
-                    if (kdtree.radiusSearch((*rsit), 2, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0) {
+                    if (kdtree.radiusSearch((*rsit), 1.5, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0) {
                         for (int i : pointIdxRadiusSearch) {
                             if (bcloud[i] == false && (rsit->z > cloud->at(i).z)) {
                                 toPush.push_back(cloud->at(i));

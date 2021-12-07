@@ -1,6 +1,8 @@
 #include "EuclidianClusterSegmentation.hpp"
 
-EuclidianClusterSegmentation::EuclidianClusterSegmentation() {}
+EuclidianClusterSegmentation::EuclidianClusterSegmentation(long minSize) {
+  m_minSize = minSize;
+}
 
 std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>
 EuclidianClusterSegmentation::segmentCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr inputCloud) {
@@ -13,7 +15,7 @@ EuclidianClusterSegmentation::segmentCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr i
     std::vector<pcl::PointIndices> clusterIndices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> extraction;
     extraction.setClusterTolerance (1.2);
-    extraction.setMinClusterSize (70);
+    extraction.setMinClusterSize (m_minSize);
     extraction.setMaxClusterSize (100000);
     extraction.setSearchMethod (kdTree);
     extraction.setInputCloud (inputCloud);

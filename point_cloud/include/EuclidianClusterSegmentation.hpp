@@ -13,9 +13,10 @@
 #include <pcl/segmentation/extract_clusters.h>
 
 class EuclidianClusterSegmentation {
-  
+private:
+    long m_minSize;
 public:
-    EuclidianClusterSegmentation();
+    EuclidianClusterSegmentation(long minSize);
     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>
     segmentCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr inputCloud);
 };

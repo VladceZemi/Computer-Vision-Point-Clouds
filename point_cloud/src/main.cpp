@@ -26,7 +26,7 @@ int main (int argc, char** argv)
     PLYLoader loader;
     cloud = loader.loadCloud("../data/segmented.ply");
 
-    EuclidianClusterSegmentation segmentation;
+    EuclidianClusterSegmentation segmentation(100);
     cloudSegments = segmentation.segmentCloud(cloud);
 
     for (auto segment : cloudSegments) {
