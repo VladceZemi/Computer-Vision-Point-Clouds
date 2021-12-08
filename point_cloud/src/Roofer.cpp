@@ -10,6 +10,19 @@ bool pointsEq(pcl::PointXYZ p1, pcl::PointXYZ p2) {
     );
 }
 
+bool isFurther(pcl::PointXYZ p1, pcl::PointXYZ p2) {
+    return (
+        p1.x > p2.x &&
+        p1.y > p2.y
+    );
+}
+
+bool isCloser(pcl::PointXYZ p1, pcl::PointXYZ p2) {
+    return (
+        p1.x < p2.x &&
+        p1.y < p2.y
+    );
+}
 
 Roofer::Roofer(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     numCld += 1;
@@ -26,7 +39,7 @@ void Roofer::roof() {
     for (int i = 0; i < m_segments.size(); i++) {
         m_segmentRoofPoints.push_back(std::vector<pcl::PointXYZ>());
         auto segment = m_segments.at(i);
-        auto roofRidge = getRoofRidge(segment,2);
+        auto roofRidge = getRoofRidge(segment, 1);
         auto farthestPoints = getFarthestPoints(roofRidge);
         pcl::PointXYZ ridgePoint1 = getMaxZPointNear(std::get<0>(farthestPoints), 1.5, roofRidge);
         pcl::PointXYZ ridgePoint2 = getMaxZPointNear(std::get<1>(farthestPoints), 1.5, roofRidge);
@@ -247,9 +260,9 @@ std::vector<pcl::PointXYZ> Roofer::getCornerPoints(pcl::PointCloud<pcl::PointXYZ
     return cornerPoints;
 }
 
-std::string Roofer::endMe(std::string fuckMe, int ligMaBalls) {
+std::string Roofer::makeID(std::string name, int subSegmentId) {
     std::stringstream ss;
-    ss << "c" << numCld << "s" << ligMaBalls << fuckMe;
+    ss << "c" << numCld << "s" << subSegmentId << name;
     return ss.str();
 }
 
@@ -259,9 +272,13 @@ void Roofer::visualize(const boost::shared_ptr<pcl::visualization::PCLVisualizer
     // viewer->addLine(center, pcl::PointXYZ(center.x + 10, center.y, center.z), 1.0, 0, 0, "X");
     // viewer->addLine(center, pcl::PointXYZ(center.x, center.y + 10, center.z), 0, 1.0, 0, "Y");
     // viewer->addLine(center, pcl::PointXYZ(center.x, center.y, center.z + 10), 0, 0, 1.0, "Z");
-    viewer->addPointCloud(m_cloud, endMe("cloud", 100));
-    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, endMe("cloud", 100));
-    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1.0, 1.0, 1.0, endMe("cloud", 100));
+
+    int r = (rand() % 255);
+    int g = (rand() % 255);
+    int b = (rand() % 255);
+    viewer->addPointCloud(m_cloud, makeID("cloud", 100));
+    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, makeID("cloud", 100));
+    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, (double)r/255, (double)g/255, (double)b/255, makeID("cloud", 100));
 
     for (int i = 0; i < m_segmentRoofPoints.size(); i++) {
         auto roofPoints = m_segmentRoofPoints.at(i);
@@ -307,30 +324,30 @@ void Roofer::visualize(const boost::shared_ptr<pcl::visualization::PCLVisualizer
         }
 
 
-        int r = (rand() % 255);
-        int g = (rand() % 255);
-        int b = (rand() % 255);
+        // int r = (rand() % 255);
+        // int g = (rand() % 255);
+        // int b = (rand() % 255);
 
-        std::string cloudName = endMe("roofPoints", i);
-        viewer->addPointCloud(m_segments.at(i), cloudName);
-        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, cloudName);
-        viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, (double)r/255, (double)g/255, (double)b/255, cloudName);
+        // std::string cloudName = makeID("roofPoints", i);
+        // viewer->addPointCloud(m_segments.at(i), cloudName);
+        // viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, cloudName);
+        // viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, (double)r/255, (double)g/255, (double)b/255, cloudName);
 
 
-        viewer->addLine(roofPoints.at(0), roofPoints.at(1), 255, 0, 0, endMe("roofTop1", i));
+        viewer->addLine(roofPoints.at(0), roofPoints.at(1), 255, 0, 0, makeID("roofTop1", i));
 
-        viewer->addLine(roofPoints.at(0), nearest01Point, 255, 0, 0, endMe("roofSide2", i));
-        viewer->addLine(roofPoints.at(0), nearest02Point, 255, 0, 0, endMe("roofSide3", i));
+        viewer->addLine(roofPoints.at(0), nearest01Point, 255, 0, 0, makeID("roofSide2", i));
+        viewer->addLine(roofPoints.at(0), nearest02Point, 255, 0, 0, makeID("roofSide3", i));
 
-        viewer->addLine(roofPoints.at(1), nearest11Point, 255, 0, 0, endMe("roofSide4", i));
-        viewer->addLine(roofPoints.at(1), nearest12Point, 255, 0, 0, endMe("roofSide5", i));
+        viewer->addLine(roofPoints.at(1), nearest11Point, 255, 0, 0, makeID("roofSide4", i));
+        viewer->addLine(roofPoints.at(1), nearest12Point, 255, 0, 0, makeID("roofSide5", i));
 
-        viewer->addLine(roofPoints.at(5), roofPoints.at(3), 255, 0, 0, endMe("statueLine1", i));
-        viewer->addLine(roofPoints.at(5), roofPoints.at(4), 255, 0, 0, endMe("statueLine2", i));
-        viewer->addLine(roofPoints.at(4), roofPoints.at(2), 255, 0, 0, endMe("statueLine3", i));
-        viewer->addLine(roofPoints.at(2), roofPoints.at(3), 255, 0, 0, endMe("statueLine4", i));
+        viewer->addLine(roofPoints.at(5), roofPoints.at(3), 255, 0, 0, makeID("statueLine1", i));
+        viewer->addLine(roofPoints.at(5), roofPoints.at(4), 255, 0, 0, makeID("statueLine2", i));
+        viewer->addLine(roofPoints.at(4), roofPoints.at(2), 255, 0, 0, makeID("statueLine3", i));
+        viewer->addLine(roofPoints.at(2), roofPoints.at(3), 255, 0, 0, makeID("statueLine4", i));
 
-        //Kresleni podstavy
+        // Kresleni podstavy
         auto down1 = roofPoints.at(2);
         auto down2 = roofPoints.at(3);
         auto down3 = roofPoints.at(4);
@@ -339,33 +356,32 @@ void Roofer::visualize(const boost::shared_ptr<pcl::visualization::PCLVisualizer
         down2.z = 582;
         down3.z = 582;
         down4.z = 582;
-        viewer->addLine(roofPoints.at(2), down1, 255, 0, 0, endMe("downLine1", i));
-        viewer->addLine(roofPoints.at(3), down2, 255, 0, 0, endMe("downLine2", i));
-        viewer->addLine(roofPoints.at(4), down3, 255, 0, 0, endMe("downLine3", i));
-        viewer->addLine(roofPoints.at(5), down4, 255, 0, 0, endMe("downLine4", i));
+        viewer->addLine(roofPoints.at(2), down1, 255, 0, 0, makeID("downLine1", i));
+        viewer->addLine(roofPoints.at(3), down2, 255, 0, 0, makeID("downLine2", i));
+        viewer->addLine(roofPoints.at(4), down3, 255, 0, 0, makeID("downLine3", i));
+        viewer->addLine(roofPoints.at(5), down4, 255, 0, 0, makeID("downLine4", i));
 
-        viewer->addLine(down4, down2, 255, 0, 0, endMe("downStatue1", i));
-        viewer->addLine(down4, down3, 255, 0, 0, endMe("downStatue2", i));
-        viewer->addLine(down3, down1, 255, 0, 0, endMe("downStatue3", i));
-        viewer->addLine(down1, down2, 255, 0, 0, endMe("downStatue4", i));
+        viewer->addLine(down4, down2, 255, 0, 0, makeID("downStatue1", i));
+        viewer->addLine(down4, down3, 255, 0, 0, makeID("downStatue2", i));
+        viewer->addLine(down3, down1, 255, 0, 0, makeID("downStatue3", i));
+        viewer->addLine(down1, down2, 255, 0, 0, makeID("downStatue4", i));
 
-
-        // viewer->addText3D("0", roofPoints.at(0), 1.0, 1.0, 1.0, 1.0, endMe("pt0", i));
-        // viewer->addText3D("1", roofPoints.at(1), 1.0, 1.0, 1.0, 1.0, endMe("pt1", i));
-        // viewer->addText3D("leftTop", roofPoints.at(2), 1.0, 1.0, 1.0, 1.0, endMe("leftTop", i));
-        // viewer->addText3D("leftDown", roofPoints.at(3), 1.0, 1.0, 1.0, 1.0, endMe("leftDown", i));
-        // viewer->addText3D("rightTop", roofPoints.at(4), 1.0, 1.0, 1.0, 1.0, endMe("rightTop", i));
-        // viewer->addText3D("rightDown", roofPoints.at(5), 1.0, 1.0, 1.0, 1.0, endMe("rightDown", i));
+        // viewer->addText3D("0", roofPoints.at(0), 1.0, 1.0, 1.0, 1.0, makeID("pt0", i));
+        // viewer->addText3D("1", roofPoints.at(1), 1.0, 1.0, 1.0, 1.0, makeID("pt1", i));
+        // viewer->addText3D("leftTop", roofPoints.at(2), 1.0, 1.0, 1.0, 1.0, makeID("leftTop", i));
+        // viewer->addText3D("leftDown", roofPoints.at(3), 1.0, 1.0, 1.0, 1.0, makeID("leftDown", i));
+        // viewer->addText3D("rightTop", roofPoints.at(4), 1.0, 1.0, 1.0, 1.0, makeID("rightTop", i));
+        // viewer->addText3D("rightDown", roofPoints.at(5), 1.0, 1.0, 1.0, 1.0, makeID("rightDown", i));
     }
 }
 
 std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> Roofer::fromRidgesAndWholeCluster(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
-    EuclidianClusterSegmentation segmentation(20);
+    EuclidianClusterSegmentation segmentation(50, 1.2);
     pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
     kdtree.setInputCloud(cloud);
     bool bcloud[cloud->size()] = {};
     std::map<pcl::PointXYZ, bool> cloud_bmap;
-    const float radius = 2;
+    const float RADIUS = 1.5;
 
     std::cout << "Pocet bodu v cloud: " << cloud->size() << std::endl;
     auto roofRidges = getRoofRidge(cloud,4);
@@ -383,7 +399,7 @@ std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> Roofer::fromRidgesAndWholeClust
                     std::vector<int> pointIdxRadiusSearch;
                     std::vector<float> pointRadiusSquaredDistance;
 
-                    if (kdtree.radiusSearch((*rsit), 1.5, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0) {
+                    if (kdtree.radiusSearch((*rsit), RADIUS, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0) {
                         for (int i : pointIdxRadiusSearch) {
                             if (bcloud[i] == false && (rsit->z > cloud->at(i).z)) {
                                 toPush.push_back(cloud->at(i));

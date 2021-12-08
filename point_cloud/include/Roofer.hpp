@@ -23,8 +23,7 @@ private:
     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> m_segments;
     std::vector<std::vector<pcl::PointXYZ>> m_segmentRoofPoints;
 
-    std::vector<pcl::PointXYZ> cornersPointsEdit(std::vector<pcl::PointXYZ> corners);
-    std::string endMe(std::string fuckMe, int ligMaBalls);
+    std::string makeID(std::string name, int subSegmentId);
     pcl::PointXYZ getMaxZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     pcl::PointXYZ getMinZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     pcl::PointXYZ getMaxZPointNear(pcl::PointXYZ point, float radius, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
@@ -33,6 +32,7 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr getRoofBottom(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     std::tuple<pcl::PointXYZ, pcl::PointXYZ> getFarthestPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     std::vector<pcl::PointXYZ> getCornerPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    std::vector<pcl::PointXYZ> cornersPointsEdit(std::vector<pcl::PointXYZ> corners);
     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> fromRidgesAndWholeCluster(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 
 public:

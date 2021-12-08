@@ -14,9 +14,10 @@
 
 class EuclidianClusterSegmentation {
 private:
+    float m_tolerance;
     long m_minSize;
 public:
-    EuclidianClusterSegmentation(long minSize);
+    EuclidianClusterSegmentation(long minSize, float tolerance);
     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>
     segmentCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr inputCloud);
 };

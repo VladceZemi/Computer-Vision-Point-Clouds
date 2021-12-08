@@ -5,14 +5,16 @@
 #include <pcl/point_types.h>
 #include <pcl/visualization/keyboard_event.h>
 
+#include "Color.hpp"
 #include "PLYLoader.hpp"
 #include "PCLVisualization.hpp"
 #include "EuclidianClusterSegmentation.hpp"
 #include "Roofer.hpp"
 
-long currentSegment = 6;
+long currentSegment = 1;
 pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
 std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloudSegments;
+
 PCLVisualization visualization;
 
 void keyboardEventCallback(const pcl::visualization::KeyboardEvent &event, void* viewer_void);
@@ -26,15 +28,28 @@ int main (int argc, char** argv)
     PLYLoader loader;
     cloud = loader.loadCloud("../data/segmented.ply");
 
-    EuclidianClusterSegmentation segmentation(100);
-    cloudSegments = segmentation.segmentCloud(cloud);
+    EuclidianClusterSegmentation segmentation(300, 1.2);
+    EuclidianClusterSegmentation furtherSegmentation(100, 1.0);
+
+    for (auto segment : segmentation.segmentCloud(cloud)) {
+        if (segment->size() > 1200) {
+            for (auto fs : furtherSegmentation.segmentCloud(segment)) {
+                cloudSegments.push_back(fs);
+            }
+        }
+        else {
+            cloudSegments.push_back(segment);
+        }
+    }
 
     for (auto segment : cloudSegments) {
         Roofer roofer(segment);
         roofer.roof();
         roofer.visualize(visualization.m_viewer);
+        // visualization.addCloudWithRandomColor(segment);
     }
 
+    // visualization.addCloud(cloud, Color(255, 255, 255));
 //    visualization.addCloudWithRandomColor(cloud);
     visualization.runVisualization();
 
