@@ -23,6 +23,7 @@ private:
     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> m_segments;
     std::vector<std::vector<pcl::PointXYZ>> m_segmentRoofPoints;
 
+    std::vector<pcl::PointXYZ> cornersPointsEdit(std::vector<pcl::PointXYZ> corners);
     std::string endMe(std::string fuckMe, int ligMaBalls);
     pcl::PointXYZ getMaxZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     pcl::PointXYZ getMinZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);

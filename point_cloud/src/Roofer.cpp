@@ -32,10 +32,66 @@ void Roofer::roof() {
         pcl::PointXYZ ridgePoint2 = getMaxZPointNear(std::get<1>(farthestPoints), 1.5, roofRidge);
         m_segmentRoofPoints.at(i).push_back(ridgePoint1);
         m_segmentRoofPoints.at(i).push_back(ridgePoint2);
-        for (auto cornerPoint : getCornerPoints(segment)) {
+        auto roofBottomPoints = getCornerPoints(segment);
+        roofBottomPoints = cornersPointsEdit(roofBottomPoints);
+        for (auto cornerPoint : roofBottomPoints) {
             m_segmentRoofPoints.at(i).push_back(cornerPoint);
         }
     }
+}
+
+std::vector<pcl::PointXYZ> Roofer::cornersPointsEdit(std::vector<pcl::PointXYZ> corners){
+    std::cout<< "Velikost: "<<corners.size()<< std::endl;
+    std::vector<int> cornersCount;
+    float toleration = 1;
+    int max = 0;
+    float newZ = 0;
+    for (int i = 0; i < corners.size(); i++){
+        cornersCount.push_back(0);
+    }
+
+    for (int i = 0; i < corners.size(); i++){
+        for (int j = 0; j < corners.size(); j++){
+            if (abs(corners.at(i).z - corners.at(j).z)){
+                cornersCount.at(i)++;
+            }
+        }
+    }
+
+    for (int i = 0; i < corners.size(); i++){
+        if (max < cornersCount.at(i)){
+            max = cornersCount.at(i);
+        }
+    }
+
+    for (int i = 0; i < corners.size(); i++){
+        if (max == 1 || max == 2){}{
+            float sum = 0;
+            int jCout = 0;
+            for (int j = 0; j < corners.size(); j++){
+                sum += corners.at(i).z;
+                jCout++;
+            }
+            newZ = sum / jCout;
+        }
+        if (max > 2){
+            float sum2 = 0;
+            int match2 = 0;
+            for (int j = 0; j < corners.size(); j++){
+                if (max = cornersCount.at(j)){
+                    sum2 += corners.at(j).z;
+                    match2++;
+                }
+                newZ = sum2 / match2;
+            }
+        }
+    }
+
+    for (int i = 0; i < corners.size(); i++){
+        corners.at(i).z = newZ;
+    }
+
+    return corners;
 }
 
 pcl::PointXYZ Roofer::getMaxZPoint(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
